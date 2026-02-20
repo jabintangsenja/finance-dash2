@@ -887,29 +887,7 @@ async def delete_debt(debt_id: str):
     return {"message": "Debt deleted successfully"}
 
 
-# ==================== RECURRING BILLS ROUTES ====================
-@api_router.get("/bills", response_model=List[RecurringBill])
-async def get_bills():
-    bills = await db.recurring_bills.find({}, {"_id": 0}).to_list(1000)
-    bills = [deserialize_datetime(bill) for bill in bills]
-    return bills
-
-@api_router.post("/bills", response_model=RecurringBill)
-async def create_bill(bill: RecurringBillCreate):
-    bill_obj = RecurringBill(**bill.model_dump())
-    doc = serialize_datetime(bill_obj.model_dump())
-    await db.recurring_bills.insert_one(doc)
-    return bill_obj
-
-@api_router.delete("/bills/{bill_id}")
-async def delete_bill(bill_id: str):
-    result = await db.recurring_bills.delete_one({"id": bill_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Bill not found")
-    return {"message": "Bill deleted successfully"}
-
-
-# ==================== BILL PAYMENT ROUTES ====================
+# ==================== BILL PAYMENT ROUTES (Legacy - kept for backward compatibility) ====================
 @api_router.get("/bill-payments")
 async def get_bill_payments(bill_id: Optional[str] = None, month_year: Optional[str] = None):
     query = {}
