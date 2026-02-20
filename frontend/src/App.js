@@ -9,6 +9,8 @@ import InvestmentDetail from './pages/InvestmentDetail';
 import Debts from './pages/Debts';
 import Bills from './pages/Bills';
 import Analytics from './pages/Analytics';
+import SettingsAccounts from './pages/settings/SettingsAccounts';
+import SettingsCategories from './pages/settings/SettingsCategories';
 import { LayoutDashboard, ArrowUpDown, TrendingUp, Calendar, BarChart3, CreditCard, Target, FileText, Menu, X, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toaster } from 'sonner';
