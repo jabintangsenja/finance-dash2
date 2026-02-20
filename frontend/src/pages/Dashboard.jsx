@@ -73,33 +73,72 @@ function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-10">
-      {/* Accounting Equation - Simple Version */}
-      <Card className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-0 shadow-2xl">
-        <CardContent className="p-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <p className="text-sm font-bold text-indigo-200 uppercase tracking-wider mb-2">Assets (Harta)</p>
-              <p className="text-4xl font-black mb-2">{formatCurrency(total_assets)}</p>
-              <div className="text-xs space-y-1">
-                <p className="text-indigo-200">Cash: {formatCurrency(liquid_assets)}</p>
-                <p className="text-indigo-200">Investments: {formatCurrency(total_investments)}</p>
+      {/* Financial Overview - Clean Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Assets Card */}
+        <Card className="bg-gradient-to-br from-indigo-500 to-indigo-700 text-white border-0 shadow-xl hover:shadow-2xl transition-shadow">
+          <CardContent className="p-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+                <Wallet className="w-6 h-6" />
+              </div>
+              <p className="text-sm font-bold uppercase tracking-wider opacity-80">Harta (Assets)</p>
+            </div>
+            <p className="text-4xl font-black mb-4">{formatCurrency(total_assets)}</p>
+            <div className="space-y-2 text-sm opacity-80">
+              <div className="flex justify-between">
+                <span>Cash & Bank</span>
+                <span className="font-bold">{formatCurrency(liquid_assets)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Investments</span>
+                <span className="font-bold">{formatCurrency(total_investments)}</span>
               </div>
             </div>
-            
-            <div className="text-center">
-              <p className="text-sm font-bold text-rose-200 uppercase tracking-wider mb-2">Liabilities (Utang)</p>
-              <p className="text-4xl font-black text-rose-300 mb-2">{formatCurrency(total_liabilities)}</p>
-              <p className="text-xs text-rose-200">{active_debts} active debts</p>
+          </CardContent>
+        </Card>
+
+        {/* Liabilities Card */}
+        <Card className="bg-gradient-to-br from-rose-500 to-rose-700 text-white border-0 shadow-xl hover:shadow-2xl transition-shadow">
+          <CardContent className="p-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+                <TrendingUp className="w-6 h-6" />
+              </div>
+              <p className="text-sm font-bold uppercase tracking-wider opacity-80">Utang (Liabilities)</p>
             </div>
-            
-            <div className="text-center">
-              <p className="text-sm font-bold text-emerald-200 uppercase tracking-wider mb-2">Equity (Net Worth)</p>
-              <p className="text-4xl font-black text-emerald-300 mb-2">{formatCurrency(net_worth)}</p>
-              <Badge className="bg-emerald-400 text-emerald-900 font-bold">Your Wealth</Badge>
+            <p className="text-4xl font-black mb-4">{formatCurrency(total_liabilities)}</p>
+            <div className="space-y-2 text-sm opacity-80">
+              <div className="flex justify-between">
+                <span>Active Debts</span>
+                <span className="font-bold">{active_debts} items</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Monthly Payment</span>
+                <span className="font-bold">View Details →</span>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        {/* Equity Card */}
+        <Card className="bg-gradient-to-br from-emerald-500 to-emerald-700 text-white border-0 shadow-xl hover:shadow-2xl transition-shadow">
+          <CardContent className="p-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+                <Crown className="w-6 h-6" />
+              </div>
+              <p className="text-sm font-bold uppercase tracking-wider opacity-80">Kekayaan Bersih</p>
+            </div>
+            <p className="text-4xl font-black mb-4">{formatCurrency(net_worth)}</p>
+            <div className="mt-3">
+              <Badge className="bg-white/20 text-white font-bold text-sm px-4 py-1">
+                Your Net Worth
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
