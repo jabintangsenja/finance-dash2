@@ -189,6 +189,7 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/transactions" element={<Transactions />} />
+            <Route path="/recurring" element={<RecurringTransactions />} />
             <Route path="/budget" element={<BudgetPlanner />} />
             <Route path="/goals" element={<FinancialGoals />} />
             <Route path="/investments" element={<Investments />} />
