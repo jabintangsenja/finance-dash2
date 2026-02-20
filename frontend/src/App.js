@@ -18,6 +18,7 @@ export const API = `${BACKEND_URL}/api`;
 
 function Sidebar({ isOpen, setIsOpen }) {
   const location = useLocation();
+  const [showManagement, setShowManagement] = useState(false);
   
   const navItems = [
     { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -85,6 +86,46 @@ function Sidebar({ isOpen, setIsOpen }) {
               </Link>
             );
           })}
+          
+          <div className="pt-4 border-t border-slate-800">
+            <button
+              onClick={() => setShowManagement(!showManagement)}
+              className="w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl hover:bg-slate-800 transition-all"
+            >
+              <Settings className="w-5 h-5" />
+              <span className="font-semibold">Settings</span>
+              <span className="ml-auto">{showManagement ? '−' : '+'}</span>
+            </button>
+            
+            {showManagement && (
+              <div className="mt-2 ml-4 space-y-2 animate-in slide-in-from-top">
+                <Link
+                  to="/settings/accounts"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-slate-800 transition-all text-sm"
+                >
+                  <div className="w-2 h-2 rounded-full bg-indigo-400"></div>
+                  Manage Accounts
+                </Link>
+                <Link
+                  to="/settings/categories"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-slate-800 transition-all text-sm"
+                >
+                  <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
+                  Manage Categories
+                </Link>
+                <Link
+                  to="/settings/preferences"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-slate-800 transition-all text-sm"
+                >
+                  <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                  Preferences
+                </Link>
+              </div>
+            )}
+          </div>
         </nav>
 
         <div className="p-6">
