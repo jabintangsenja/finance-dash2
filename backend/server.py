@@ -942,6 +942,155 @@ async def delete_goal(goal_id: str):
         raise HTTPException(status_code=404, detail="Goal not found")
     return {"message": "Goal deleted successfully"}
 
+@api_router.post("/goals/{goal_id}/contribute")
+async def add_goal_contribution(goal_id: str, contribution: GoalContributionCreate):
+    """Add a contribution to a financial goal"""
+    goal = await db.financial_goals.find_one({"id": goal_id}, {"_id": 0})
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    
+    # Create contribution record
+    contrib = GoalContribution(
+        goal_id=goal_id,
+        amount=contribution.amount,
+        notes=contribution.notes
+    )
+    contrib_doc = serialize_datetime(contrib.model_dump())
+    await db.goal_contributions.insert_one(contrib_doc)
+    
+    # Update goal's current amount
+    new_amount = goal['current_amount'] + contribution.amount
+    is_achieved = new_amount >= goal['target_amount']
+    
+    await db.financial_goals.update_one(
+        {"id": goal_id},
+        {"$set": {
+            "current_amount": new_amount,
+            "is_achieved": is_achieved,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    updated_goal = await db.financial_goals.find_one({"id": goal_id}, {"_id": 0})
+    return deserialize_datetime(updated_goal)
+
+@api_router.get("/goals/{goal_id}/contributions")
+async def get_goal_contributions(goal_id: str):
+    """Get all contributions for a specific goal"""
+    contributions = await db.goal_contributions.find({"goal_id": goal_id}, {"_id": 0}).sort("date", -1).to_list(1000)
+    return [deserialize_datetime(c) for c in contributions]
+
+
+# ==================== BUDGET ROUTES ====================
+@api_router.get("/budgets")
+async def get_budgets(month_year: Optional[str] = None):
+    """Get budgets, optionally filtered by month"""
+    query = {}
+    if month_year:
+        query["month_year"] = month_year
+    
+    budgets = await db.budgets.find(query, {"_id": 0}).to_list(1000)
+    budgets = [deserialize_datetime(b) for b in budgets]
+    
+    # Calculate spent amount for each budget from transactions
+    for budget in budgets:
+        # Get transactions for this category in this month
+        month_start = f"{budget['month_year']}-01"
+        month_parts = budget['month_year'].split('-')
+        year = int(month_parts[0])
+        month = int(month_parts[1])
+        if month == 12:
+            next_month = f"{year + 1}-01-01"
+        else:
+            next_month = f"{year}-{str(month + 1).zfill(2)}-01"
+        
+        pipeline = [
+            {"$match": {
+                "category": budget['category'],
+                "type": "expense",
+                "date": {"$gte": month_start, "$lt": next_month}
+            }},
+            {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+        ]
+        
+        result = await db.transactions.aggregate(pipeline).to_list(1)
+        budget['spent'] = result[0]['total'] if result else 0
+    
+    return budgets
+
+@api_router.post("/budgets", response_model=Budget)
+async def create_budget(budget: BudgetCreate):
+    """Create a new budget"""
+    budget_dict = budget.model_dump()
+    
+    # Default to current month if not specified
+    if not budget_dict.get('month_year'):
+        budget_dict['month_year'] = datetime.now(timezone.utc).strftime('%Y-%m')
+    
+    # Check if budget already exists for this category and month
+    existing = await db.budgets.find_one({
+        "category": budget_dict['category'],
+        "month_year": budget_dict['month_year']
+    }, {"_id": 0})
+    
+    if existing:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Budget for {budget_dict['category']} already exists for {budget_dict['month_year']}"
+        )
+    
+    budget_obj = Budget(**budget_dict)
+    doc = serialize_datetime(budget_obj.model_dump())
+    await db.budgets.insert_one(doc)
+    return budget_obj
+
+@api_router.put("/budgets/{budget_id}")
+async def update_budget(budget_id: str, budget_data: dict):
+    """Update a budget"""
+    existing = await db.budgets.find_one({"id": budget_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Budget not found")
+    
+    budget_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    await db.budgets.update_one({"id": budget_id}, {"$set": budget_data})
+    
+    updated = await db.budgets.find_one({"id": budget_id}, {"_id": 0})
+    return deserialize_datetime(updated)
+
+@api_router.delete("/budgets/{budget_id}")
+async def delete_budget(budget_id: str):
+    """Delete a budget"""
+    result = await db.budgets.delete_one({"id": budget_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Budget not found")
+    return {"message": "Budget deleted successfully"}
+
+@api_router.get("/budgets/summary")
+async def get_budget_summary(month_year: Optional[str] = None):
+    """Get budget summary with spending analysis"""
+    if not month_year:
+        month_year = datetime.now(timezone.utc).strftime('%Y-%m')
+    
+    budgets = await get_budgets(month_year)
+    
+    total_budget = sum(b['amount'] for b in budgets)
+    total_spent = sum(b['spent'] for b in budgets)
+    
+    over_budget = [b for b in budgets if b['spent'] > b['amount']]
+    near_limit = [b for b in budgets if b['spent'] >= b['amount'] * 0.8 and b['spent'] <= b['amount']]
+    
+    return {
+        "month_year": month_year,
+        "total_budget": total_budget,
+        "total_spent": total_spent,
+        "remaining": total_budget - total_spent,
+        "utilization_percentage": (total_spent / total_budget * 100) if total_budget > 0 else 0,
+        "budgets_count": len(budgets),
+        "over_budget_count": len(over_budget),
+        "near_limit_count": len(near_limit),
+        "budgets": budgets
+    }
+
 
 # ==================== LEGACY INVESTMENT ROUTES (for backward compatibility) ====================
 @api_router.get("/investments")
