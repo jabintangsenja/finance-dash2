@@ -408,6 +408,11 @@ async def get_accounts():
 
 @api_router.post("/accounts", response_model=Account)
 async def create_account(account: AccountCreate):
+    # Check for duplicate account name
+    existing = await db.accounts.find_one({"name": {"$regex": f"^{account.name}$", "$options": "i"}}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Account '{account.name}' already exists")
+    
     acc_obj = Account(**account.model_dump())
     doc = serialize_datetime(acc_obj.model_dump())
     await db.accounts.insert_one(doc)
