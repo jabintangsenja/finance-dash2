@@ -1247,7 +1247,207 @@ async def delete_detailed_investment(investment_type: str, item_id: str):
     return {"message": "Investment deleted"}
 
 
-# ==================== DASHBOARD ROUTES (ACCOUNTING EQUATION) ====================
+# ==================== RECURRING TRANSACTIONS ROUTES ====================
+@api_router.get("/recurring-transactions")
+async def get_recurring_transactions():
+    """Get all recurring transactions"""
+    recurring = await db.recurring_transactions.find({}, {"_id": 0}).to_list(1000)
+    return [deserialize_datetime(r) for r in recurring]
+
+@api_router.post("/recurring-transactions")
+async def create_recurring_transaction(data: RecurringTransactionCreate):
+    """Create a new recurring transaction"""
+    recurring = RecurringTransaction(**data.model_dump())
+    
+    # Calculate next due date
+    today = datetime.now(timezone.utc)
+    if recurring.frequency == "Monthly":
+        next_due = today.replace(day=recurring.day_of_month)
+        if next_due <= today:
+            if today.month == 12:
+                next_due = next_due.replace(year=today.year + 1, month=1)
+            else:
+                next_due = next_due.replace(month=today.month + 1)
+        recurring.next_due = next_due
+    
+    doc = serialize_datetime(recurring.model_dump())
+    await db.recurring_transactions.insert_one(doc)
+    return recurring
+
+@api_router.put("/recurring-transactions/{recurring_id}")
+async def update_recurring_transaction(recurring_id: str, data: dict):
+    """Update a recurring transaction"""
+    data.pop("id", None)
+    data.pop("_id", None)
+    
+    result = await db.recurring_transactions.update_one(
+        {"id": recurring_id},
+        {"$set": data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Recurring transaction not found")
+    
+    return {"message": "Updated successfully"}
+
+@api_router.delete("/recurring-transactions/{recurring_id}")
+async def delete_recurring_transaction(recurring_id: str):
+    """Delete a recurring transaction"""
+    result = await db.recurring_transactions.delete_one({"id": recurring_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Recurring transaction not found")
+    
+    return {"message": "Deleted successfully"}
+
+@api_router.post("/recurring-transactions/{recurring_id}/generate")
+async def generate_recurring_transaction(recurring_id: str):
+    """Manually generate transaction from recurring"""
+    recurring = await db.recurring_transactions.find_one({"id": recurring_id}, {"_id": 0})
+    
+    if not recurring:
+        raise HTTPException(status_code=404, detail="Recurring transaction not found")
+    
+    # Create transaction
+    tx = Transaction(
+        description=recurring['name'],
+        amount=recurring['amount'],
+        type=TransactionType(recurring['type']),
+        category=recurring['category'],
+        account=recurring['account'],
+        notes=f"Auto-generated from recurring: {recurring['name']}"
+    )
+    
+    doc = serialize_datetime(tx.model_dump())
+    await db.transactions.insert_one(doc)
+    
+    # Update account balance
+    amount = tx.amount if tx.type == TransactionType.INCOME else -tx.amount
+    await db.accounts.update_one(
+        {"name": tx.account},
+        {"$inc": {"balance": amount}}
+    )
+    
+    # Update last generated
+    await db.recurring_transactions.update_one(
+        {"id": recurring_id},
+        {"$set": {"last_generated": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Transaction generated", "transaction_id": tx.id}
+
+
+# ==================== SMART CATEGORIZATION ROUTES ====================
+@api_router.post("/smart-categorize")
+async def smart_categorize(description: str):
+    """Suggest category based on description keywords"""
+    description_lower = description.lower()
+    
+    for category, keywords in CATEGORY_KEYWORDS.items():
+        for keyword in keywords:
+            if keyword in description_lower:
+                return {"suggested_category": category, "confidence": "high"}
+    
+    return {"suggested_category": "Other Expense", "confidence": "low"}
+
+
+# ==================== NOTIFICATIONS/ALERTS ROUTES ====================
+@api_router.get("/alerts")
+async def get_alerts():
+    """Get budget alerts and goal milestones"""
+    alerts = []
+    
+    # Check budget alerts
+    current_month = datetime.now(timezone.utc).strftime('%Y-%m')
+    budgets = await db.budgets.find({"month_year": current_month}, {"_id": 0}).to_list(1000)
+    
+    for budget in budgets:
+        # Calculate spent from transactions
+        month_start = f"{current_month}-01"
+        pipeline = [
+            {"$match": {
+                "category": budget['category'],
+                "type": "expense",
+                "date": {"$gte": month_start}
+            }},
+            {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+        ]
+        result = await db.transactions.aggregate(pipeline).to_list(1)
+        spent = result[0]['total'] if result else 0
+        
+        percentage = (spent / budget['amount'] * 100) if budget['amount'] > 0 else 0
+        
+        if percentage >= 100:
+            alerts.append({
+                "type": "budget_exceeded",
+                "severity": "high",
+                "title": f"Budget {budget['category']} Terlampaui!",
+                "message": f"Anda sudah menghabiskan {percentage:.0f}% dari budget {budget['category']}",
+                "category": budget['category'],
+                "spent": spent,
+                "budget": budget['amount']
+            })
+        elif percentage >= 80:
+            alerts.append({
+                "type": "budget_warning",
+                "severity": "medium",
+                "title": f"Budget {budget['category']} Hampir Habis",
+                "message": f"Sudah terpakai {percentage:.0f}% dari budget {budget['category']}",
+                "category": budget['category'],
+                "spent": spent,
+                "budget": budget['amount']
+            })
+    
+    # Check goal milestones
+    goals = await db.financial_goals.find({"is_achieved": False}, {"_id": 0}).to_list(1000)
+    
+    for goal in goals:
+        progress = (goal['current_amount'] / goal['target_amount'] * 100) if goal['target_amount'] > 0 else 0
+        
+        if progress >= 90 and progress < 100:
+            alerts.append({
+                "type": "goal_almost",
+                "severity": "low",
+                "title": f"Hampir Mencapai Goal!",
+                "message": f"Goal '{goal['name']}' sudah {progress:.0f}%! Sedikit lagi!",
+                "goal_name": goal['name'],
+                "progress": progress
+            })
+        elif progress >= 50:
+            milestones = [50, 75]
+            for milestone in milestones:
+                if progress >= milestone and progress < milestone + 10:
+                    alerts.append({
+                        "type": "goal_milestone",
+                        "severity": "info",
+                        "title": f"Milestone {milestone}% Tercapai!",
+                        "message": f"Goal '{goal['name']}' sudah mencapai {milestone}%",
+                        "goal_name": goal['name'],
+                        "progress": progress
+                    })
+    
+    # Check bills due soon
+    today = datetime.now(timezone.utc).day
+    bills = await db.bills.find({}, {"_id": 0}).to_list(1000)
+    
+    for bill in bills:
+        due_day = int(bill.get('due_date', '01'))
+        days_until_due = due_day - today
+        
+        if 0 < days_until_due <= 3:
+            alerts.append({
+                "type": "bill_due_soon",
+                "severity": "medium",
+                "title": f"Tagihan Jatuh Tempo",
+                "message": f"Tagihan '{bill['name']}' jatuh tempo dalam {days_until_due} hari",
+                "bill_name": bill['name'],
+                "amount": bill['amount']
+            })
+    
+    return alerts
+
+
+
 @api_router.get("/dashboard")
 async def get_dashboard_data():
     """Get comprehensive dashboard data with accounting equation"""
