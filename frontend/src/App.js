@@ -150,6 +150,7 @@ function App() {
   return (
     <BrowserRouter>
       <AppContent />
+      <Toaster position="top-right" richColors />
     </BrowserRouter>
   );
 }
