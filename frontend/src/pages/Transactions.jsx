@@ -163,7 +163,33 @@ function Transactions() {
 
   const handleAddAccount = async () => {
     if (!newAccountName.trim()) {
-      toast.error('Please enter account name');\n      return;\n    }\n    \n    // Check for duplicates (case-insensitive)\n    const exists = accounts.find(acc => acc.name.toLowerCase() === newAccountName.trim().toLowerCase());\n    if (exists) {\n      toast.error(`Account "${newAccountName}" already exists!`, {\n        description: 'Please choose a different name'\n      });\n      return;\n    }\n\n    try {\n      await axios.post(`${API}/accounts`, {\n        name: newAccountName.trim(),\n        type: newAccountType,\n        balance: 0\n      });\n      toast.success(`Account "${newAccountName}" added successfully!`);\n      setNewAccountName('');\n      setNewAccountType('Bank');\n      fetchAccounts();\n    } catch (error) {\n      console.error('Error adding account:', error);\n      toast.error('Failed to add account');\n    }\n  };
+      toast.error('Please enter account name');
+      return;
+    }
+    
+    const exists = accounts.find(acc => acc.name.toLowerCase() === newAccountName.trim().toLowerCase());
+    if (exists) {
+      toast.error(`Account already exists!`, {
+        description: 'Please choose a different name'
+      });
+      return;
+    }
+
+    try {
+      await axios.post(`${API}/accounts`, {
+        name: newAccountName.trim(),
+        type: newAccountType,
+        balance: 0
+      });
+      toast.success(`Account added successfully!`);
+      setNewAccountName('');
+      setNewAccountType('Bank');
+      fetchAccounts();
+    } catch (error) {
+      console.error('Error adding account:', error);
+      toast.error('Failed to add account');
+    }
+  };
 
   const handleDeleteAccount = async (accountId, accountName) => {
     try {
