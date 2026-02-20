@@ -5,9 +5,11 @@ import '@/App.css';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Investments from './pages/Investments';
+import InvestmentDetail from './pages/InvestmentDetail';
+import Debts from './pages/Debts';
 import Bills from './pages/Bills';
 import Analytics from './pages/Analytics';
-import { LayoutDashboard, ArrowUpDown, TrendingUp, Calendar, BarChart3, Menu, X } from 'lucide-react';
+import { LayoutDashboard, ArrowUpDown, TrendingUp, Calendar, BarChart3, CreditCard, Target, FileText, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toaster } from 'sonner';
 
