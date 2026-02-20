@@ -29,6 +29,7 @@ function Sidebar({ isOpen, setIsOpen }) {
   const navItems = [
     { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/transactions', icon: ArrowUpDown, label: 'Transaksi' },
+    { path: '/recurring', icon: Repeat, label: 'Recurring' },
     { path: '/budget', icon: PieChart, label: 'Budget' },
     { path: '/goals', icon: Target, label: 'Goals' },
     { path: '/investments', icon: TrendingUp, label: 'Investasi' },
