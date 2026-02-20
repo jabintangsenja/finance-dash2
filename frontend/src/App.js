@@ -9,6 +9,7 @@ import Bills from './pages/Bills';
 import Analytics from './pages/Analytics';
 import { LayoutDashboard, ArrowUpDown, TrendingUp, Calendar, BarChart3, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Toaster } from 'sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
