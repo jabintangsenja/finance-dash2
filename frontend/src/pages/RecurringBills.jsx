@@ -202,13 +202,18 @@ function RecurringBills() {
 
   const openEditDialog = (item) => {
     setSelectedItem(item);
+    const itemDate = item.due_date ? new Date(item.due_date) : new Date();
+    if (item.day_of_month && !item.due_date) {
+      itemDate.setDate(item.day_of_month);
+    }
     setFormData({
       name: item.name || '',
       amount: (item.amount || 0).toString(),
       type: item.type || 'expense',
       category: item.category || 'Bills',
       account: item.account || 'Cash',
-      day_of_month: item.day_of_month || 1,
+      due_date: itemDate,
+      frequency: item.frequency || 'monthly',
       is_active: item.is_active !== false,
       notes: item.notes || ''
     });
