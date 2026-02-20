@@ -1250,8 +1250,30 @@ async def delete_detailed_investment(investment_type: str, item_id: str):
 # ==================== UNIFIED RECURRING BILLS ROUTES ====================
 @api_router.get("/recurring-bills")
 async def get_recurring_bills():
-    """Get all recurring bills (unified: income & expense)"""
+    """Get all recurring bills (unified: income & expense) - also include legacy bills"""
     items = await db.recurring_bills.find({}, {"_id": 0}).to_list(1000)
+    
+    # Also get legacy bills and convert them
+    legacy_bills = await db.bills.find({}, {"_id": 0}).to_list(1000)
+    for bill in legacy_bills:
+        # Convert legacy bill format to new format
+        converted = {
+            "id": bill.get('id'),
+            "name": bill.get('name'),
+            "amount": bill.get('amount', 0),
+            "type": "expense",  # Legacy bills are all expenses
+            "category": bill.get('category', 'Bills'),
+            "account": bill.get('account', 'Cash'),
+            "frequency": bill.get('period', 'Monthly'),
+            "day_of_month": int(bill.get('due_date', '1')),
+            "is_active": bill.get('is_active', True),
+            "notes": bill.get('notes'),
+            "created_at": bill.get('created_at')
+        }
+        # Only add if not already in recurring_bills
+        if not any(i.get('id') == converted['id'] for i in items):
+            items.append(converted)
+    
     return [deserialize_datetime(i) for i in items]
 
 @api_router.post("/recurring-bills")
