@@ -1391,34 +1391,6 @@ async def delete_recurring_transaction(recurring_id: str):
 async def generate_recurring_transaction(recurring_id: str):
     """Manually generate transaction from recurring"""
     return await pay_recurring_bill(recurring_id, {"month_year": datetime.now(timezone.utc).strftime('%Y-%m')})
-    
-    # Create transaction
-    tx = Transaction(
-        description=recurring['name'],
-        amount=recurring['amount'],
-        type=TransactionType(recurring['type']),
-        category=recurring['category'],
-        account=recurring['account'],
-        notes=f"Auto-generated from recurring: {recurring['name']}"
-    )
-    
-    doc = serialize_datetime(tx.model_dump())
-    await db.transactions.insert_one(doc)
-    
-    # Update account balance
-    amount = tx.amount if tx.type == TransactionType.INCOME else -tx.amount
-    await db.accounts.update_one(
-        {"name": tx.account},
-        {"$inc": {"balance": amount}}
-    )
-    
-    # Update last generated
-    await db.recurring_transactions.update_one(
-        {"id": recurring_id},
-        {"$set": {"last_generated": datetime.now(timezone.utc).isoformat()}}
-    )
-    
-    return {"message": "Transaction generated", "transaction_id": tx.id}
 
 
 # ==================== SMART CATEGORIZATION ROUTES ====================
