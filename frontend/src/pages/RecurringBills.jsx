@@ -634,7 +634,10 @@ function RecurringBills() {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit</DialogTitle>
+            <DialogTitle>Edit Tagihan/Recurring</DialogTitle>
+            <DialogDescription>
+              Ubah detail pemasukan atau pengeluaran berulang
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -654,16 +657,106 @@ function RecurringBills() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Tanggal</Label>
-                <Select value={formData.day_of_month.toString()} onValueChange={(v) => setFormData({...formData, day_of_month: parseInt(v)})}>
+                <Label>Tipe</Label>
+                <Select 
+                  value={formData.type} 
+                  onValueChange={(v) => setFormData({...formData, type: v, category: v === 'income' ? 'Salary' : 'Bills'})}
+                >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {Array.from({length: 28}, (_, i) => i + 1).map(day => (
-                      <SelectItem key={day} value={day.toString()}>Tgl {day}</SelectItem>
+                    <SelectItem value="income">
+                      <div className="flex items-center gap-2">
+                        <ArrowDownLeft className="w-4 h-4 text-emerald-500" />
+                        Pemasukan
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="expense">
+                      <div className="flex items-center gap-2">
+                        <ArrowUpRight className="w-4 h-4 text-rose-500" />
+                        Pengeluaran
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Kategori</Label>
+                <Select value={formData.category} onValueChange={(v) => setFormData({...formData, category: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(formData.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Akun</Label>
+                <Select value={formData.account} onValueChange={(v) => setFormData({...formData, account: v})}>
+                  <SelectTrigger><SelectValue placeholder="Pilih akun" /></SelectTrigger>
+                  <SelectContent>
+                    {accounts.map(acc => (
+                      <SelectItem key={acc.id} value={acc.name}>{acc.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            {/* Frequency Radio */}
+            <div className="space-y-3">
+              <Label>Frekuensi</Label>
+              <RadioGroup 
+                value={formData.frequency} 
+                onValueChange={(v) => setFormData({...formData, frequency: v})}
+                className="flex gap-6"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="monthly" id="edit-monthly" />
+                  <Label htmlFor="edit-monthly" className="font-normal cursor-pointer flex items-center gap-2">
+                    <Repeat className="w-4 h-4 text-indigo-500" />
+                    Setiap Bulan
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="adhoc" id="edit-adhoc" />
+                  <Label htmlFor="edit-adhoc" className="font-normal cursor-pointer flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-amber-500" />
+                    Adhoc (Sekali)
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {/* Date Picker */}
+            <div className="space-y-2">
+              <Label>Tanggal Jatuh Tempo</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.due_date ? format(formData.due_date, 'dd MMMM yyyy', { locale: id }) : 'Pilih tanggal'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={formData.due_date}
+                    onSelect={(date) => setFormData({...formData, due_date: date || new Date()})}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              {formData.frequency === 'monthly' && (
+                <p className="text-xs text-slate-500">
+                  Akan ditagihkan setiap tanggal {formData.due_date ? formData.due_date.getDate() : 1} setiap bulan
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter>

@@ -1253,28 +1253,53 @@ async def get_recurring_bills():
     """Get all recurring bills (unified: income & expense) - also include legacy bills"""
     items = await db.recurring_bills.find({}, {"_id": 0}).to_list(1000)
     
+    # Normalize recurring_bills items to ensure all required fields exist
+    normalized_items = []
+    for item in items:
+        normalized = {
+            "id": item.get('id', str(uuid.uuid4())),
+            "name": item.get('name', 'Unnamed'),
+            "amount": float(item.get('amount', 0)),
+            "type": item.get('type', 'expense'),
+            "category": item.get('category', 'Bills'),
+            "account": item.get('account', 'Cash'),
+            "frequency": item.get('frequency', 'monthly'),
+            "day_of_month": int(item.get('day_of_month', 1)),
+            "due_date": item.get('due_date'),
+            "is_active": item.get('is_active', True) if item.get('is_active') is not None else True,
+            "notes": item.get('notes'),
+            "created_at": item.get('created_at')
+        }
+        normalized_items.append(normalized)
+    
     # Also get legacy bills and convert them
     legacy_bills = await db.bills.find({}, {"_id": 0}).to_list(1000)
     for bill in legacy_bills:
-        # Convert legacy bill format to new format
+        # Convert legacy bill format to new format with proper defaults
+        try:
+            day_of_month = int(bill.get('due_date', '1')) if bill.get('due_date') else 1
+        except (ValueError, TypeError):
+            day_of_month = 1
+            
         converted = {
-            "id": bill.get('id'),
-            "name": bill.get('name'),
-            "amount": bill.get('amount', 0),
+            "id": bill.get('id', str(uuid.uuid4())),
+            "name": bill.get('name', 'Unnamed'),
+            "amount": float(bill.get('amount', 0)),
             "type": "expense",  # Legacy bills are all expenses
             "category": bill.get('category', 'Bills'),
             "account": bill.get('account', 'Cash'),
-            "frequency": bill.get('period', 'Monthly'),
-            "day_of_month": int(bill.get('due_date', '1')),
-            "is_active": bill.get('is_active', True),
+            "frequency": bill.get('period', 'monthly').lower() if bill.get('period') else 'monthly',
+            "day_of_month": day_of_month,
+            "due_date": None,
+            "is_active": bill.get('is_active', True) if bill.get('is_active') is not None else True,
             "notes": bill.get('notes'),
             "created_at": bill.get('created_at')
         }
         # Only add if not already in recurring_bills
-        if not any(i.get('id') == converted['id'] for i in items):
-            items.append(converted)
+        if not any(i.get('id') == converted['id'] for i in normalized_items):
+            normalized_items.append(converted)
     
-    return [deserialize_datetime(i) for i in items]
+    return [deserialize_datetime(i) for i in normalized_items]
 
 @api_router.post("/recurring-bills")
 async def create_recurring_bill(data: RecurringTransactionCreate):
