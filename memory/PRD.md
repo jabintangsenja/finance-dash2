@@ -50,12 +50,13 @@ User requested to transform a simple personal finance dashboard into a comprehen
 - [x] Backend data normalization for legacy `bills` collection
 - [x] Consistent Add/Edit dialog forms
 
-#### Investment Detail (NEW)
+#### Investment Portfolio (Unified - Updated Feb 2026)
 - [x] Tab-based UI for Saham, Deposito, Emas, Reksadana
 - [x] Detailed forms per investment type
 - [x] Full CRUD operations
 - [x] Portfolio allocation pie chart
 - [x] Summary cards per type
+- [x] **Merged into single page** (removed redundant manual input page)
 
 #### Smart Features (NEW)
 - [x] Smart Categorization API - Keyword-based category suggestion
