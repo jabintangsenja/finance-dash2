@@ -120,10 +120,12 @@ function RecurringBills() {
     }
 
     try {
+      const dueDate = formData.due_date instanceof Date ? formData.due_date : new Date(formData.due_date);
       await axios.post(`${API}/recurring-bills`, {
         ...formData,
         amount: parseFloat(formData.amount),
-        day_of_month: parseInt(formData.day_of_month)
+        day_of_month: dueDate.getDate(),
+        due_date: format(dueDate, 'yyyy-MM-dd')
       });
       toast.success('Berhasil ditambahkan!');
       setShowAddDialog(false);
