@@ -403,6 +403,50 @@ class InvestmentUpdate(BaseModel):
     reksadana: float = 0.0
 
 
+# Recurring Transaction Model
+class RecurringTransaction(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    amount: float
+    type: TransactionType
+    category: str
+    account: str
+    frequency: str = "Monthly"  # Daily, Weekly, Monthly, Yearly
+    day_of_month: int = 1  # For monthly
+    is_active: bool = True
+    last_generated: Optional[datetime] = None
+    next_due: Optional[datetime] = None
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class RecurringTransactionCreate(BaseModel):
+    name: str
+    amount: float
+    type: TransactionType
+    category: str
+    account: str
+    frequency: str = "Monthly"
+    day_of_month: int = 1
+    notes: Optional[str] = None
+
+
+# Smart Category Keywords
+CATEGORY_KEYWORDS = {
+    "Food": ["makan", "resto", "cafe", "kopi", "food", "makanan", "grabfood", "gofood", "warteg", "nasi", "mie"],
+    "Transport": ["grab", "gojek", "taxi", "bensin", "parkir", "tol", "transport", "ojek", "bus", "kereta"],
+    "Bills": ["listrik", "pln", "air", "pdam", "internet", "wifi", "telepon", "pulsa", "tagihan"],
+    "Shopping": ["shopee", "tokopedia", "lazada", "bukalapak", "belanja", "beli", "mall", "toko"],
+    "Entertainment": ["netflix", "spotify", "game", "bioskop", "cinema", "nonton", "hiburan"],
+    "Health": ["apotek", "dokter", "rs", "rumah sakit", "obat", "kesehatan", "medical"],
+    "Education": ["kursus", "buku", "sekolah", "kuliah", "les", "pendidikan", "course"],
+    "Subscription": ["subscription", "langganan", "membership", "premium"],
+    "Salary": ["gaji", "salary", "payroll"],
+    "Freelance": ["freelance", "project", "proyek", "fee"],
+    "Investment": ["dividen", "dividend", "bunga", "interest", "investasi"],
+}
+
+
 # ==================== HELPER FUNCTIONS ====================
 def serialize_datetime(obj):
     """Convert datetime objects to ISO string for MongoDB"""
