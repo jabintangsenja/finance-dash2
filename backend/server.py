@@ -562,6 +562,7 @@ async def create_transaction(transaction: TransactionCreate):
                 monthly_payment=tx_obj.amount * 0.1,
                 remaining_installments=10,
                 due_date="05",
+                start_date=datetime.now(timezone.utc),
                 notes=f"Auto-created from {tx_obj.payment_method.value} transaction: {tx_obj.description}"
             )
             debt_doc = serialize_datetime(new_debt.model_dump())
