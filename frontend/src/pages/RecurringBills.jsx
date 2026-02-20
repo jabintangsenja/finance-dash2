@@ -206,6 +206,8 @@ function RecurringBills() {
     if (item.day_of_month && !item.due_date) {
       itemDate.setDate(item.day_of_month);
     }
+    // Normalize frequency to lowercase
+    const freq = (item.frequency || 'monthly').toLowerCase();
     setFormData({
       name: item.name || '',
       amount: (item.amount || 0).toString(),
@@ -213,7 +215,7 @@ function RecurringBills() {
       category: item.category || 'Bills',
       account: item.account || 'Cash',
       due_date: itemDate,
-      frequency: item.frequency || 'monthly',
+      frequency: freq === 'monthly' ? 'monthly' : 'adhoc',
       is_active: item.is_active !== false,
       notes: item.notes || ''
     });
