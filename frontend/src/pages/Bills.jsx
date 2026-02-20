@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -30,7 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Receipt, Trash2, CalendarCheck } from 'lucide-react';
+import { Plus, Receipt, Trash2, CalendarCheck, Check, Clock, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const formatCurrency = (amount) => {
@@ -44,6 +46,7 @@ const formatCurrency = (amount) => {
 
 function Bills() {
   const [bills, setBills] = useState([]);
+  const [billPayments, setBillPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -56,8 +59,12 @@ function Bills() {
     category: 'Bills'
   });
 
+  // Get current month-year for tracking payments
+  const currentMonthYear = new Date().toISOString().slice(0, 7);
+
   useEffect(() => {
     fetchBills();
+    fetchBillPayments();
   }, []);
 
   const fetchBills = async () => {
@@ -68,6 +75,15 @@ function Bills() {
     } catch (error) {
       console.error('Error fetching bills:', error);
       setLoading(false);
+    }
+  };
+
+  const fetchBillPayments = async () => {
+    try {
+      const response = await axios.get(`${API}/bill-payments?month_year=${currentMonthYear}`);
+      setBillPayments(response.data);
+    } catch (error) {
+      console.error('Error fetching bill payments:', error);
     }
   };
 
@@ -100,6 +116,32 @@ function Bills() {
     }
   };
 
+  const handleMarkAsPaid = async (bill) => {
+    try {
+      await axios.post(`${API}/bill-payments`, {
+        bill_id: bill.id,
+        bill_name: bill.name,
+        amount: bill.amount,
+        due_date: bill.due_date,
+        month_year: currentMonthYear,
+        notes: `Paid for ${getMonthName(currentMonthYear)}`
+      });
+      
+      toast.success(`Bill "${bill.name}" marked as paid!`, {
+        description: 'A transaction has been automatically created'
+      });
+      
+      fetchBillPayments();
+    } catch (error) {
+      console.error('Error marking bill as paid:', error);
+      toast.error('Failed to mark bill as paid');
+    }
+  };
+
+  const isBillPaidThisMonth = (billId) => {
+    return billPayments.some(payment => payment.bill_id === billId);
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -115,9 +157,26 @@ function Bills() {
     setShowDeleteDialog(true);
   };
 
+  const getMonthName = (monthYear) => {
+    const date = new Date(monthYear + '-01');
+    return date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  };
+
   const totalMonthlyBills = bills
     .filter(bill => bill.period === 'Monthly')
     .reduce((sum, bill) => sum + bill.amount, 0);
+
+  const paidBillsCount = bills.filter(bill => isBillPaidThisMonth(bill.id)).length;
+  const unpaidBillsCount = bills.length - paidBillsCount;
+
+  const getDueDateStatus = (dueDate) => {
+    const today = new Date().getDate();
+    const due = parseInt(dueDate);
+    
+    if (today > due) return 'overdue';
+    if (due - today <= 3) return 'soon';
+    return 'upcoming';
+  };
 
   if (loading) {
     return (
@@ -136,7 +195,7 @@ function Bills() {
             <CalendarCheck className="text-rose-500" />
             Recurring Bills & Subscriptions
           </h1>
-          <p className="text-slate-600 mt-2">Manage your monthly bills and subscriptions</p>
+          <p className="text-slate-600 mt-2">Manage your monthly bills and subscriptions - {getMonthName(currentMonthYear)}</p>
         </div>
         <Button onClick={() => { resetForm(); setShowAddDialog(true); }} data-testid="add-bill-btn">
           <Plus className="w-4 h-4 mr-2" />
@@ -144,67 +203,207 @@ function Bills() {
         </Button>
       </div>
 
-      {/* Total Monthly Bills */}
-      <Card className="border-rose-100 bg-rose-50/50">
-        <CardHeader>
-          <CardTitle className="text-sm font-bold text-rose-700">Total Monthly Bills</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-black text-rose-600">{formatCurrency(totalMonthlyBills)}</p>
-          <p className="text-sm text-rose-500 mt-1">{bills.length} active bill{bills.length !== 1 ? 's' : ''}</p>
-        </CardContent>
-      </Card>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="border-rose-100 bg-gradient-to-br from-rose-50 to-rose-100/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-bold text-rose-700">Total Monthly Bills</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-black text-rose-600">{formatCurrency(totalMonthlyBills)}</p>
+            <p className="text-sm text-rose-500 mt-1">{bills.length} active bill{bills.length !== 1 ? 's' : ''}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-emerald-100 bg-gradient-to-br from-emerald-50 to-emerald-100/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-bold text-emerald-700 flex items-center gap-2">
+              <Check className="w-4 h-4" />
+              Paid This Month
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-black text-emerald-600">{paidBillsCount}</p>
+            <p className="text-sm text-emerald-500 mt-1">of {bills.length} bills</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-amber-100 bg-gradient-to-br from-amber-50 to-amber-100/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-bold text-amber-700 flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Unpaid
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-black text-amber-600">{unpaidBillsCount}</p>
+            <p className="text-sm text-amber-500 mt-1">bills remaining</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-indigo-100 bg-gradient-to-br from-indigo-50 to-indigo-100/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-bold text-indigo-700">Progress</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-black text-indigo-600">
+              {bills.length > 0 ? Math.round((paidBillsCount / bills.length) * 100) : 0}%
+            </p>
+            <div className="w-full bg-indigo-200 rounded-full h-2 mt-2">
+              <div 
+                className="bg-indigo-600 h-2 rounded-full transition-all duration-500" 
+                style={{ width: `${bills.length > 0 ? (paidBillsCount / bills.length) * 100 : 0}%` }}
+              ></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Bills Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="space-y-6">
+        <h2 className="text-2xl font-black text-slate-800">Your Bills</h2>
+        
         {bills.length === 0 ? (
-          <Card className="col-span-2">
+          <Card>
             <CardContent className="py-20 text-center">
               <Receipt className="w-16 h-16 text-slate-300 mx-auto mb-4" />
               <p className="text-slate-400 font-semibold">No bills yet. Add your first recurring bill!</p>
             </CardContent>
           </Card>
         ) : (
-          bills.map((bill) => (
-            <Card 
-              key={bill.id} 
-              className="group hover:shadow-2xl hover:shadow-rose-100 transition-all duration-500 cursor-pointer border-slate-100"
-              data-testid="bill-card"
-            >
-              <CardContent className="p-8">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-5 flex-1">
-                    <div className="w-14 h-14 bg-white rounded-3xl flex items-center justify-center text-rose-500 shadow-sm">
-                      <Receipt className="w-6 h-6" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {bills.map((bill) => {
+              const isPaid = isBillPaidThisMonth(bill.id);
+              const status = getDueDateStatus(bill.due_date);
+              
+              return (
+                <Card 
+                  key={bill.id} 
+                  className={`group hover:shadow-2xl transition-all duration-500 cursor-pointer border-l-4 ${
+                    isPaid 
+                      ? 'border-l-emerald-500 bg-emerald-50/30' 
+                      : status === 'overdue' 
+                        ? 'border-l-rose-500 bg-rose-50/30'
+                        : status === 'soon'
+                          ? 'border-l-amber-500 bg-amber-50/30'
+                          : 'border-l-slate-300'
+                  }`}
+                  data-testid="bill-card"
+                >
+                  <CardContent className="p-8">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-start gap-5 flex-1">
+                        {/* Checkbox */}
+                        <div className="pt-1">
+                          <Checkbox
+                            checked={isPaid}
+                            onCheckedChange={() => !isPaid && handleMarkAsPaid(bill)}
+                            disabled={isPaid}
+                            className={`h-6 w-6 ${isPaid ? 'border-emerald-500 bg-emerald-500' : ''}`}
+                            data-testid="bill-checkbox"
+                          />
+                        </div>
+                        
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <p className={`font-black text-lg ${isPaid ? 'text-slate-500 line-through' : 'text-slate-800'}`}>
+                              {bill.name}
+                            </p>
+                            {isPaid && (
+                              <Badge className="bg-emerald-100 text-emerald-700 font-bold">
+                                <Check className="w-3 h-3 mr-1" />
+                                Paid
+                              </Badge>
+                            )}
+                            {!isPaid && status === 'overdue' && (
+                              <Badge variant="destructive" className="font-bold">
+                                <AlertCircle className="w-3 h-3 mr-1" />
+                                Overdue
+                              </Badge>
+                            )}
+                            {!isPaid && status === 'soon' && (
+                              <Badge className="bg-amber-100 text-amber-700 font-bold">
+                                <Clock className="w-3 h-3 mr-1" />
+                                Due Soon
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-400 font-bold">
+                            Due every {bill.due_date}{getOrdinalSuffix(bill.due_date)} • {bill.period}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-3">
+                        <div className="text-right">
+                          <p className={`font-black text-xl ${isPaid ? 'text-slate-400' : 'text-slate-900'}`}>
+                            {formatCurrency(bill.amount)}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openDeleteDialog(bill)}
+                          className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                          data-testid="delete-bill-btn"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-black text-slate-800 text-lg">{bill.name}</p>
-                      <p className="text-xs text-slate-400 font-bold mt-1">
-                        Due every {bill.due_date}{getOrdinalSuffix(bill.due_date)}
-                      </p>
-                      <p className="text-xs text-slate-500 font-semibold mt-1">{bill.period}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="text-right">
-                      <p className="font-black text-slate-900 text-xl">{formatCurrency(bill.amount)}</p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openDeleteDialog(bill)}
-                      className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                      data-testid="delete-bill-btn"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+
+                    {!isPaid && (
+                      <div className="mt-6 pt-4 border-t border-slate-200">
+                        <Button 
+                          onClick={() => handleMarkAsPaid(bill)} 
+                          className="w-full bg-emerald-600 hover:bg-emerald-700"
+                          data-testid="mark-paid-btn"
+                        >
+                          <Check className="w-4 h-4 mr-2" />
+                          Mark as Paid & Create Transaction
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         )}
       </div>
+
+      {/* Payment History This Month */}
+      {billPayments.length > 0 && (
+        <Card className="border-emerald-100">
+          <CardHeader>
+            <CardTitle className="text-xl font-black flex items-center gap-3">
+              <Check className="w-5 h-5 text-emerald-500" />
+              Payment History - {getMonthName(currentMonthYear)}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {billPayments.map((payment) => (
+                <div key={payment.id} className="flex justify-between items-center p-4 bg-emerald-50 rounded-xl">
+                  <div>
+                    <p className="font-bold text-slate-800">{payment.bill_name}</p>
+                    <p className="text-xs text-slate-500">
+                      Paid on {new Date(payment.payment_date).toLocaleDateString('id-ID', { 
+                        day: 'numeric', 
+                        month: 'short', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                  <p className="font-black text-emerald-600">{formatCurrency(payment.amount)}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Add Bill Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
