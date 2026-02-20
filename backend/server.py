@@ -1247,66 +1247,150 @@ async def delete_detailed_investment(investment_type: str, item_id: str):
     return {"message": "Investment deleted"}
 
 
-# ==================== RECURRING TRANSACTIONS ROUTES ====================
-@api_router.get("/recurring-transactions")
-async def get_recurring_transactions():
-    """Get all recurring transactions"""
-    recurring = await db.recurring_transactions.find({}, {"_id": 0}).to_list(1000)
-    return [deserialize_datetime(r) for r in recurring]
+# ==================== UNIFIED RECURRING BILLS ROUTES ====================
+@api_router.get("/recurring-bills")
+async def get_recurring_bills():
+    """Get all recurring bills (unified: income & expense)"""
+    items = await db.recurring_bills.find({}, {"_id": 0}).to_list(1000)
+    return [deserialize_datetime(i) for i in items]
 
-@api_router.post("/recurring-transactions")
-async def create_recurring_transaction(data: RecurringTransactionCreate):
-    """Create a new recurring transaction"""
-    recurring = RecurringTransaction(**data.model_dump())
+@api_router.post("/recurring-bills")
+async def create_recurring_bill(data: RecurringTransactionCreate):
+    """Create a new recurring bill"""
+    item = RecurringTransaction(**data.model_dump())
     
     # Calculate next due date
     today = datetime.now(timezone.utc)
-    if recurring.frequency == "Monthly":
-        next_due = today.replace(day=recurring.day_of_month)
-        if next_due <= today:
-            if today.month == 12:
-                next_due = next_due.replace(year=today.year + 1, month=1)
-            else:
-                next_due = next_due.replace(month=today.month + 1)
-        recurring.next_due = next_due
+    if item.frequency == "Monthly":
+        try:
+            next_due = today.replace(day=item.day_of_month)
+            if next_due <= today:
+                if today.month == 12:
+                    next_due = next_due.replace(year=today.year + 1, month=1)
+                else:
+                    next_due = next_due.replace(month=today.month + 1)
+            item.next_due = next_due
+        except:
+            pass
     
-    doc = serialize_datetime(recurring.model_dump())
-    await db.recurring_transactions.insert_one(doc)
-    return recurring
+    doc = serialize_datetime(item.model_dump())
+    await db.recurring_bills.insert_one(doc)
+    return item
 
-@api_router.put("/recurring-transactions/{recurring_id}")
-async def update_recurring_transaction(recurring_id: str, data: dict):
-    """Update a recurring transaction"""
+@api_router.put("/recurring-bills/{item_id}")
+async def update_recurring_bill(item_id: str, data: dict):
+    """Update a recurring bill"""
     data.pop("id", None)
     data.pop("_id", None)
     
-    result = await db.recurring_transactions.update_one(
-        {"id": recurring_id},
+    result = await db.recurring_bills.update_one(
+        {"id": item_id},
         {"$set": data}
     )
     
     if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Recurring transaction not found")
+        raise HTTPException(status_code=404, detail="Item not found")
     
     return {"message": "Updated successfully"}
 
-@api_router.delete("/recurring-transactions/{recurring_id}")
-async def delete_recurring_transaction(recurring_id: str):
-    """Delete a recurring transaction"""
-    result = await db.recurring_transactions.delete_one({"id": recurring_id})
+@api_router.delete("/recurring-bills/{item_id}")
+async def delete_recurring_bill(item_id: str):
+    """Delete a recurring bill"""
+    result = await db.recurring_bills.delete_one({"id": item_id})
     
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Recurring transaction not found")
+        raise HTTPException(status_code=404, detail="Item not found")
     
     return {"message": "Deleted successfully"}
+
+@api_router.post("/recurring-bills/{item_id}/pay")
+async def pay_recurring_bill(item_id: str, data: dict):
+    """Mark a recurring bill as paid for a specific month and create transaction"""
+    item = await db.recurring_bills.find_one({"id": item_id}, {"_id": 0})
+    
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    month_year = data.get('month_year', datetime.now(timezone.utc).strftime('%Y-%m'))
+    
+    # Check if already paid
+    existing = await db.recurring_payments.find_one({
+        "recurring_id": item_id,
+        "month_year": month_year
+    }, {"_id": 0})
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Already paid for this month")
+    
+    # Create transaction
+    tx = Transaction(
+        description=item['name'],
+        amount=item['amount'],
+        type=TransactionType(item['type']),
+        category=item['category'],
+        account=item['account'],
+        notes=f"Auto-paid recurring: {item['name']}"
+    )
+    
+    tx_doc = serialize_datetime(tx.model_dump())
+    await db.transactions.insert_one(tx_doc)
+    
+    # Update account balance
+    amount = tx.amount if tx.type == TransactionType.INCOME else -tx.amount
+    await db.accounts.update_one(
+        {"name": tx.account},
+        {"$inc": {"balance": amount}}
+    )
+    
+    # Record payment
+    payment = {
+        "id": str(uuid.uuid4()),
+        "recurring_id": item_id,
+        "transaction_id": tx.id,
+        "amount": item['amount'],
+        "month_year": month_year,
+        "paid_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.recurring_payments.insert_one(payment)
+    
+    return {"message": "Paid successfully", "transaction_id": tx.id}
+
+@api_router.get("/recurring-payments")
+async def get_recurring_payments(month_year: Optional[str] = None):
+    """Get payment records for recurring bills"""
+    query = {}
+    if month_year:
+        query["month_year"] = month_year
+    
+    payments = await db.recurring_payments.find(query, {"_id": 0}).to_list(1000)
+    return payments
+
+
+# ==================== LEGACY RECURRING TRANSACTIONS (for backward compat) ====================
+@api_router.get("/recurring-transactions")
+async def get_recurring_transactions():
+    """Get all recurring transactions - redirects to unified endpoint"""
+    return await get_recurring_bills()
+
+@api_router.post("/recurring-transactions")
+async def create_recurring_transaction(data: RecurringTransactionCreate):
+    """Create recurring - redirects to unified endpoint"""
+    return await create_recurring_bill(data)
+
+@api_router.put("/recurring-transactions/{recurring_id}")
+async def update_recurring_transaction(recurring_id: str, data: dict):
+    """Update recurring - redirects to unified endpoint"""
+    return await update_recurring_bill(recurring_id, data)
+
+@api_router.delete("/recurring-transactions/{recurring_id}")
+async def delete_recurring_transaction(recurring_id: str):
+    """Delete recurring - redirects to unified endpoint"""
+    return await delete_recurring_bill(recurring_id)
 
 @api_router.post("/recurring-transactions/{recurring_id}/generate")
 async def generate_recurring_transaction(recurring_id: str):
     """Manually generate transaction from recurring"""
-    recurring = await db.recurring_transactions.find_one({"id": recurring_id}, {"_id": 0})
-    
-    if not recurring:
-        raise HTTPException(status_code=404, detail="Recurring transaction not found")
+    return await pay_recurring_bill(recurring_id, {"month_year": datetime.now(timezone.utc).strftime('%Y-%m')})
     
     # Create transaction
     tx = Transaction(
