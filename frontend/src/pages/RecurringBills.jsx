@@ -139,10 +139,12 @@ function RecurringBills() {
 
   const handleEdit = async () => {
     try {
+      const dueDate = formData.due_date instanceof Date ? formData.due_date : new Date(formData.due_date);
       await axios.put(`${API}/recurring-bills/${selectedItem.id}`, {
         ...formData,
         amount: parseFloat(formData.amount),
-        day_of_month: parseInt(formData.day_of_month)
+        day_of_month: dueDate.getDate(),
+        due_date: format(dueDate, 'yyyy-MM-dd')
       });
       toast.success('Berhasil diupdate!');
       setShowEditDialog(false);
