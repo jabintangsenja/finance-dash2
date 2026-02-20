@@ -232,7 +232,8 @@ function RecurringBills() {
       type: 'expense',
       category: 'Bills',
       account: accounts[0]?.name || '',
-      day_of_month: 1,
+      due_date: new Date(),
+      frequency: 'monthly',
       is_active: true,
       notes: ''
     });
