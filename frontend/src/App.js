@@ -1,53 +1,155 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import axios from 'axios';
+import '@/App.css';
+import Dashboard from './pages/Dashboard';
+import Transactions from './pages/Transactions';
+import Investments from './pages/Investments';
+import Bills from './pages/Bills';
+import Analytics from './pages/Analytics';
+import { LayoutDashboard, ArrowUpDown, TrendingUp, Calendar, BarChart3, Menu, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+export const API = `${BACKEND_URL}/api`;
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
+function Sidebar({ isOpen, setIsOpen }) {
+  const location = useLocation();
+  
+  const navItems = [
+    { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/transactions', icon: ArrowUpDown, label: 'Transaksi' },
+    { path: '/investments', icon: TrendingUp, label: 'Investasi' },
+    { path: '/bills', icon: Calendar, label: 'Tagihan' },
+    { path: '/analytics', icon: BarChart3, label: 'Analytics' },
+  ];
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
+    <>
+      {/* Overlay for mobile */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <aside className={`
+        fixed lg:sticky top-0 left-0 h-screen w-72 bg-slate-900 text-slate-400 
+        flex flex-col shrink-0 z-50 transition-transform duration-300
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <div className="p-8 flex items-center justify-between border-b border-slate-800/50">
+          <div className="flex items-center gap-3">
+            <div className="bg-indigo-600 p-2.5 rounded-2xl text-white shadow-xl shadow-indigo-500/20">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <span className="text-xl font-extrabold text-white tracking-tighter uppercase">
+              Finance<span className="text-indigo-500">OS</span>
+            </span>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="lg:hidden text-white"
+            onClick={() => setIsOpen(false)}
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+        
+        <nav className="flex-1 p-6 space-y-3 overflow-y-auto">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setIsOpen(false)}
+                className={`
+                  w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all
+                  ${isActive 
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' 
+                    : 'hover:bg-slate-800'
+                  }
+                `}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="font-semibold">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="p-6">
+          <div className="bg-slate-800/40 rounded-[2rem] p-6 border border-slate-700/50">
+            <p className="text-[10px] font-bold text-slate-500 uppercase mb-3 tracking-widest text-center">
+              Health Score
+            </p>
+            <div className="flex justify-center items-end gap-1">
+              <span className="text-3xl font-black text-white">85</span>
+              <span className="text-[10px] text-emerald-400 font-bold mb-1">PRO</span>
+            </div>
+            <div className="h-1.5 w-full bg-slate-700 rounded-full mt-4 overflow-hidden">
+              <div className="h-full bg-indigo-500 transition-all duration-1000" style={{width: '85%'}} />
+            </div>
+          </div>
+        </div>
+      </aside>
+    </>
+  );
+}
+
+function AppContent() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  return (
+    <div className="flex h-screen w-screen overflow-hidden bg-slate-50">
+      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+      
+      <main className="flex-1 h-screen overflow-y-auto">
+        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md px-6 lg:px-10 py-5 flex justify-between items-center border-b border-slate-100">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+            <h2 className="font-extrabold text-slate-900 text-xl tracking-tight">
+              Financial Command Center
+            </h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-100">
+              U
+            </div>
+          </div>
+        </header>
+
+        <div className="p-6 lg:p-10">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/transactions" element={<Transactions />} />
+            <Route path="/investments" element={<Investments />} />
+            <Route path="/bills" element={<Bills />} />
+            <Route path="/analytics" element={<Analytics />} />
+          </Routes>
+        </div>
+      </main>
     </div>
   );
-};
+}
 
 function App() {
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </div>
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
   );
 }
 
