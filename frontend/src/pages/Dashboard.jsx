@@ -41,7 +41,20 @@ function Dashboard() {
     );
   }
 
-  const { cash_balance = 0, total_investments = 0, net_worth = 0, total_income = 0, total_expense = 0, recent_transactions = [], investments = {} } = dashboardData || {};
+  const { 
+    cash_balance = 0, 
+    total_investments = 0, 
+    net_worth = 0, 
+    total_income = 0, 
+    total_expense = 0, 
+    recent_transactions = [], 
+    investments = {},
+    total_assets = 0,
+    total_liabilities = 0,
+    liquid_assets = 0,
+    active_debts = 0,
+    total_debt_amount = 0
+  } = dashboardData || {};
 
   // Prepare investment data for pie chart
   const investmentData = Object.entries(investments).map(([name, value]) => ({
