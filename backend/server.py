@@ -348,6 +348,7 @@ class FinancialGoal(BaseModel):
     category: str  # Emergency Fund, House, Car, Vacation, Retirement
     is_achieved: bool = False
     notes: Optional[str] = None
+    color: str = "#6366f1"  # Default indigo color
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -358,6 +359,40 @@ class FinancialGoalCreate(BaseModel):
     target_date: datetime
     category: str
     notes: Optional[str] = None
+    color: str = "#6366f1"
+
+class GoalContribution(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    goal_id: str
+    amount: float
+    date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    notes: Optional[str] = None
+
+class GoalContributionCreate(BaseModel):
+    goal_id: str
+    amount: float
+    notes: Optional[str] = None
+
+
+# Budget Models
+class Budget(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    category: str
+    amount: float
+    period: str = "Monthly"  # Monthly, Weekly, Yearly
+    month_year: str  # Format: "2025-01"
+    spent: float = 0.0
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class BudgetCreate(BaseModel):
+    category: str
+    amount: float
+    period: str = "Monthly"
+    month_year: Optional[str] = None
 
 
 # Investment Update Model (Legacy for backward compatibility)
