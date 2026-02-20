@@ -23,6 +23,7 @@ function Sidebar({ isOpen, setIsOpen }) {
     { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/transactions', icon: ArrowUpDown, label: 'Transaksi' },
     { path: '/investments', icon: TrendingUp, label: 'Investasi' },
+    { path: '/debts', icon: CreditCard, label: 'Utang' },
     { path: '/bills', icon: Calendar, label: 'Tagihan' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
   ];
