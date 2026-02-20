@@ -66,6 +66,7 @@ class PaymentMethod(str, Enum):
     CREDIT = "Credit Card"
     TRANSFER = "Bank Transfer"
     EWALLET = "E-Wallet"
+    PAYLATER = "Pay Later"
 
 class TransactionStatus(str, Enum):
     COMPLETED = "Completed"
