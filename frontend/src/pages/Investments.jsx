@@ -87,13 +87,22 @@ function Investments() {
               <p className="text-2xl font-black mt-4">{formatCurrency(totalInvestments)}</p>
               <p className="text-indigo-300 text-sm mt-1">Total Portfolio Value</p>
             </div>
-            <Button 
-              onClick={handleUpdate} 
-              className="bg-white text-indigo-600 hover:bg-indigo-50 px-10 py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-2xl"
-              data-testid="update-investments-btn"
-            >
-              Update Portfolio
-            </Button>
+            <div className="flex gap-4">
+              <Button 
+                onClick={() => navigate('/investments/detail')} 
+                className="bg-white text-indigo-600 hover:bg-indigo-50 px-8 py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-2xl"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Detail Breakdown
+              </Button>
+              <Button 
+                onClick={handleUpdate} 
+                className="bg-white text-indigo-600 hover:bg-indigo-50 px-10 py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-2xl"
+                data-testid="update-investments-btn"
+              >
+                Update Portfolio
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
