@@ -358,14 +358,18 @@ function RecurringBills() {
                 <div className="space-y-3">
                   {filteredItems.map((item) => {
                     const isPaid = isPaidThisMonth(item.id);
-                    const status = getDueDateStatus(item.day_of_month);
-                    const isExpense = item.type === 'expense';
+                    const itemType = item.type || 'expense';
+                    const dayOfMonth = item.day_of_month || parseInt(item.due_date) || 1;
+                    const status = getDueDateStatus(dayOfMonth);
+                    const isExpense = itemType === 'expense';
+                    const itemAccount = item.account || 'Cash';
+                    const itemAmount = item.amount || 0;
                     
                     return (
                       <div 
                         key={item.id}
                         className={`flex items-center justify-between p-4 rounded-xl border transition-all group ${
-                          !item.is_active 
+                          item.is_active === false
                             ? 'bg-slate-50 opacity-60' 
                             : isExpense && isPaid 
                               ? 'bg-emerald-50/50 border-emerald-100' 
@@ -380,16 +384,16 @@ function RecurringBills() {
                             <Checkbox
                               checked={isPaid}
                               onCheckedChange={() => !isPaid && handleMarkPaid(item)}
-                              disabled={isPaid || !item.is_active}
+                              disabled={isPaid || item.is_active === false}
                               className={`h-5 w-5 ${isPaid ? 'border-emerald-500 bg-emerald-500' : ''}`}
                             />
                           )}
                           
                           {/* Icon */}
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                            item.type === 'income' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'
+                            itemType === 'income' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'
                           }`}>
-                            {item.type === 'income' ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
+                            {itemType === 'income' ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
                           </div>
                           
                           {/* Info */}
@@ -415,13 +419,13 @@ function RecurringBills() {
                               )}
                             </div>
                             <div className="flex items-center gap-2 text-xs text-slate-500">
-                              <span>{item.category}</span>
+                              <span>{item.category || 'Bills'}</span>
                               <span>•</span>
-                              <span>{item.account}</span>
+                              <span>{itemAccount}</span>
                               <span>•</span>
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3" />
-                                Tgl {item.day_of_month}
+                                Tgl {dayOfMonth}
                               </span>
                             </div>
                           </div>
@@ -430,14 +434,14 @@ function RecurringBills() {
                         <div className="flex items-center gap-4">
                           <div className="text-right">
                             <p className={`font-bold text-lg ${
-                              item.type === 'income' ? 'text-emerald-600' : isPaid ? 'text-slate-400' : 'text-slate-800'
+                              itemType === 'income' ? 'text-emerald-600' : isPaid ? 'text-slate-400' : 'text-slate-800'
                             }`}>
-                              {item.type === 'income' ? '+' : '-'}{formatCurrency(item.amount)}
+                              {itemType === 'income' ? '+' : '-'}{formatCurrency(itemAmount)}
                             </p>
                           </div>
 
                           <Switch
-                            checked={item.is_active}
+                            checked={item.is_active !== false}
                             onCheckedChange={() => handleToggleActive(item)}
                             className="data-[state=checked]:bg-indigo-600"
                           />
