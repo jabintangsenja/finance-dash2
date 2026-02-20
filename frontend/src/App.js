@@ -11,6 +11,7 @@ import Bills from './pages/Bills';
 import Analytics from './pages/Analytics';
 import SettingsAccounts from './pages/settings/SettingsAccounts';
 import SettingsCategories from './pages/settings/SettingsCategories';
+import Preferences from './pages/settings/Preferences';
 import { LayoutDashboard, ArrowUpDown, TrendingUp, Calendar, BarChart3, CreditCard, Target, FileText, Menu, X, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toaster } from 'sonner';
@@ -189,6 +190,7 @@ function AppContent() {
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings/accounts" element={<SettingsAccounts />} />
             <Route path="/settings/categories" element={<SettingsCategories />} />
+            <Route path="/settings/preferences" element={<Preferences />} />
           </Routes>
         </div>
       </main>
