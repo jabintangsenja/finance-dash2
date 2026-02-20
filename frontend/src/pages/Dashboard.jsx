@@ -72,6 +72,43 @@ function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-10">
+      {/* Accounting Equation Banner */}
+      <Card className="bg-gradient-to-r from-slate-900 via-indigo-900 to-purple-900 text-white border-0 shadow-2xl overflow-hidden">
+        <CardContent className="p-8">
+          <h2 className="text-sm font-bold text-indigo-300 uppercase tracking-widest mb-6">Accounting Equation</h2>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+            <div className="md:col-span-2 text-center p-6 bg-white/10 rounded-2xl backdrop-blur-sm">
+              <p className="text-xs font-bold text-indigo-200 uppercase mb-2">Assets (Harta)</p>
+              <p className="text-3xl font-black">{formatCurrency(total_assets)}</p>
+              <div className="mt-3 text-xs space-y-1">
+                <p className="text-indigo-200">Liquid: {formatCurrency(liquid_assets)}</p>
+                <p className="text-indigo-200">Investments: {formatCurrency(total_investments)}</p>
+              </div>
+            </div>
+            
+            <div className="flex justify-center">
+              <div className="text-4xl font-black text-indigo-300">=</div>
+            </div>
+            
+            <div className="text-center p-6 bg-white/10 rounded-2xl backdrop-blur-sm">
+              <p className="text-xs font-bold text-rose-200 uppercase mb-2">Liabilities (Utang)</p>
+              <p className="text-2xl font-black text-rose-300">{formatCurrency(total_liabilities)}</p>
+              <p className="text-xs text-rose-200 mt-2">{active_debts} active debts</p>
+            </div>
+            
+            <div className="flex justify-center">
+              <div className="text-4xl font-black text-indigo-300">+</div>
+            </div>
+            
+            <div className="text-center p-6 bg-emerald-500/20 rounded-2xl backdrop-blur-sm border-2 border-emerald-400">
+              <p className="text-xs font-bold text-emerald-200 uppercase mb-2">Equity (Net Worth)</p>
+              <p className="text-3xl font-black text-emerald-300">{formatCurrency(net_worth)}</p>
+              <Badge className="mt-2 bg-emerald-400 text-emerald-900 font-bold">Your Wealth</Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <Card className="bg-slate-900 text-white border-0 shadow-2xl relative overflow-hidden">
