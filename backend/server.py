@@ -1391,33 +1391,6 @@ async def get_recurring_payments(month_year: Optional[str] = None):
     return payments
 
 
-# ==================== LEGACY RECURRING TRANSACTIONS (for backward compat) ====================
-@api_router.get("/recurring-transactions")
-async def get_recurring_transactions():
-    """Get all recurring transactions - redirects to unified endpoint"""
-    return await get_recurring_bills()
-
-@api_router.post("/recurring-transactions")
-async def create_recurring_transaction(data: RecurringTransactionCreate):
-    """Create recurring - redirects to unified endpoint"""
-    return await create_recurring_bill(data)
-
-@api_router.put("/recurring-transactions/{recurring_id}")
-async def update_recurring_transaction(recurring_id: str, data: dict):
-    """Update recurring - redirects to unified endpoint"""
-    return await update_recurring_bill(recurring_id, data)
-
-@api_router.delete("/recurring-transactions/{recurring_id}")
-async def delete_recurring_transaction(recurring_id: str):
-    """Delete recurring - redirects to unified endpoint"""
-    return await delete_recurring_bill(recurring_id)
-
-@api_router.post("/recurring-transactions/{recurring_id}/generate")
-async def generate_recurring_transaction(recurring_id: str):
-    """Manually generate transaction from recurring"""
-    return await pay_recurring_bill(recurring_id, {"month_year": datetime.now(timezone.utc).strftime('%Y-%m')})
-
-
 # ==================== SMART CATEGORIZATION ROUTES ====================
 @api_router.post("/smart-categorize")
 async def smart_categorize(description: str):
