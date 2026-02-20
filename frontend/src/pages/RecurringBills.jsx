@@ -235,17 +235,19 @@ function RecurringBills() {
 
   // Filter items based on tab
   const filteredItems = items.filter(item => {
-    if (activeTab === 'income') return item.type === 'income';
-    if (activeTab === 'expense') return item.type === 'expense';
+    const itemType = item.type || 'expense'; // Default to expense for legacy data
+    if (activeTab === 'income') return itemType === 'income';
+    if (activeTab === 'expense') return itemType === 'expense';
     return true;
   });
 
-  // Calculate summaries
-  const activeItems = items.filter(i => i.is_active);
-  const totalIncome = activeItems.filter(i => i.type === 'income').reduce((sum, i) => sum + i.amount, 0);
-  const totalExpense = activeItems.filter(i => i.type === 'expense').reduce((sum, i) => sum + i.amount, 0);
-  const paidCount = activeItems.filter(i => i.type === 'expense' && isPaidThisMonth(i.id)).length;
-  const unpaidCount = activeItems.filter(i => i.type === 'expense' && !isPaidThisMonth(i.id)).length;
+  // Calculate summaries - handle legacy data without type field
+  const activeItems = items.filter(i => i.is_active !== false);
+  const totalIncome = activeItems.filter(i => i.type === 'income').reduce((sum, i) => sum + (i.amount || 0), 0);
+  const totalExpense = activeItems.filter(i => !i.type || i.type === 'expense').reduce((sum, i) => sum + (i.amount || 0), 0);
+  const expenseItems = activeItems.filter(i => !i.type || i.type === 'expense');
+  const paidCount = expenseItems.filter(i => isPaidThisMonth(i.id)).length;
+  const unpaidCount = expenseItems.filter(i => !isPaidThisMonth(i.id)).length;
 
   if (loading) {
     return (
