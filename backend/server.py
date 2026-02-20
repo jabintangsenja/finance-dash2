@@ -498,6 +498,35 @@ async def create_transaction(transaction: TransactionCreate):
         {"$inc": {"balance": amount}}
     )
     
+    # Auto-create debt entry for Credit Card or Pay Later transactions
+    if tx_obj.type == TransactionType.EXPENSE and tx_obj.payment_method in [PaymentMethod.CREDIT, PaymentMethod.PAYLATER]:
+        # Check if debt already exists for this creditor
+        existing_debt = await db.debts.find_one({"creditor": tx_obj.account, "is_active": True}, {"_id": 0})
+        
+        if existing_debt:
+            # Update existing debt balance
+            new_balance = existing_debt['current_balance'] + tx_obj.amount
+            await db.debts.update_one(
+                {"id": existing_debt['id']},
+                {"$set": {"current_balance": new_balance, "updated_at": datetime.now(timezone.utc).isoformat()}}
+            )
+        else:
+            # Create new debt entry
+            debt_type = DebtType.CREDIT_CARD if tx_obj.payment_method == PaymentMethod.CREDIT else DebtType.INSTALLMENT
+            new_debt = Debt(
+                debt_type=debt_type,
+                creditor=tx_obj.account,
+                principal_amount=tx_obj.amount,
+                current_balance=tx_obj.amount,
+                interest_rate=2.5 if tx_obj.payment_method == PaymentMethod.CREDIT else 1.5,
+                monthly_payment=tx_obj.amount * 0.1,
+                remaining_installments=10,
+                due_date="05",
+                notes=f"Auto-created from {tx_obj.payment_method.value} transaction: {tx_obj.description}"
+            )
+            debt_doc = serialize_datetime(new_debt.model_dump())
+            await db.debts.insert_one(debt_doc)
+    
     return tx_obj
 
 @api_router.put("/transactions/{transaction_id}", response_model=Transaction)
