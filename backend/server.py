@@ -1097,15 +1097,15 @@ async def get_budget_summary(month_year: Optional[str] = None):
 @api_router.get("/investments")
 async def get_investments_legacy():
     # Calculate totals from detailed investments
-    stocks = await db.stocks.find({}, {"_id": 0}).to_list(1000)
-    deposits = await db.deposits.find({}, {"_id": 0}).to_list(1000)
-    gold_items = await db.gold.find({}, {"_id": 0}).to_list(1000)
-    mutual_funds = await db.mutual_funds.find({}, {"_id": 0}).to_list(1000)
+    stocks = await db.investment_stocks.find({}, {"_id": 0}).to_list(1000)
+    deposits = await db.investment_deposits.find({}, {"_id": 0}).to_list(1000)
+    gold_items = await db.investment_gold.find({}, {"_id": 0}).to_list(1000)
+    mutual_funds = await db.investment_mutual_funds.find({}, {"_id": 0}).to_list(1000)
     
-    total_saham = sum(s['lots'] * s['current_price'] * 100 for s in stocks)
-    total_deposito = sum(d['amount'] for d in deposits)
-    total_emas = sum(g['weight_grams'] * g['current_price_per_gram'] for g in gold_items)
-    total_reksadana = sum(mf['units'] * mf['current_nav'] for mf in mutual_funds)
+    total_saham = sum(s.get('current_value', 0) for s in stocks)
+    total_deposito = sum(d.get('current_value', d.get('amount', 0)) for d in deposits)
+    total_emas = sum(g.get('current_value', 0) for g in gold_items)
+    total_reksadana = sum(mf.get('current_value', 0) for mf in mutual_funds)
     
     return {
         "saham": total_saham,
@@ -1117,6 +1117,90 @@ async def get_investments_legacy():
 @api_router.post("/investments")
 async def update_investments_legacy(investments: InvestmentUpdate):
     return {"message": "Please use detailed investment endpoints", "data": investments.model_dump()}
+
+
+# ==================== DETAILED INVESTMENT ROUTES ====================
+@api_router.get("/investments/detailed")
+async def get_detailed_investments():
+    """Get all investments grouped by type"""
+    stocks = await db.investment_stocks.find({}, {"_id": 0}).to_list(1000)
+    deposits = await db.investment_deposits.find({}, {"_id": 0}).to_list(1000)
+    gold = await db.investment_gold.find({}, {"_id": 0}).to_list(1000)
+    mutual_funds = await db.investment_mutual_funds.find({}, {"_id": 0}).to_list(1000)
+    
+    return {
+        "stocks": stocks,
+        "deposits": deposits,
+        "gold": gold,
+        "mutual_funds": mutual_funds
+    }
+
+@api_router.post("/investments/detailed/{investment_type}")
+async def add_detailed_investment(investment_type: str, data: dict):
+    """Add a new investment item"""
+    collection_map = {
+        "stocks": "investment_stocks",
+        "deposits": "investment_deposits", 
+        "gold": "investment_gold",
+        "mutual_funds": "investment_mutual_funds"
+    }
+    
+    if investment_type not in collection_map:
+        raise HTTPException(status_code=400, detail="Invalid investment type")
+    
+    data["id"] = str(uuid.uuid4())
+    data["created_at"] = datetime.now(timezone.utc).isoformat()
+    
+    collection = db[collection_map[investment_type]]
+    await collection.insert_one(data)
+    
+    return {"message": "Investment added", "id": data["id"]}
+
+@api_router.put("/investments/detailed/{investment_type}/{item_id}")
+async def update_detailed_investment(investment_type: str, item_id: str, data: dict):
+    """Update an investment item"""
+    collection_map = {
+        "stocks": "investment_stocks",
+        "deposits": "investment_deposits",
+        "gold": "investment_gold",
+        "mutual_funds": "investment_mutual_funds"
+    }
+    
+    if investment_type not in collection_map:
+        raise HTTPException(status_code=400, detail="Invalid investment type")
+    
+    data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    data.pop("id", None)
+    data.pop("_id", None)
+    
+    collection = db[collection_map[investment_type]]
+    result = await collection.update_one({"id": item_id}, {"$set": data})
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Investment not found")
+    
+    return {"message": "Investment updated"}
+
+@api_router.delete("/investments/detailed/{investment_type}/{item_id}")
+async def delete_detailed_investment(investment_type: str, item_id: str):
+    """Delete an investment item"""
+    collection_map = {
+        "stocks": "investment_stocks",
+        "deposits": "investment_deposits",
+        "gold": "investment_gold",
+        "mutual_funds": "investment_mutual_funds"
+    }
+    
+    if investment_type not in collection_map:
+        raise HTTPException(status_code=400, detail="Invalid investment type")
+    
+    collection = db[collection_map[investment_type]]
+    result = await collection.delete_one({"id": item_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Investment not found")
+    
+    return {"message": "Investment deleted"}
 
 
 # ==================== DASHBOARD ROUTES (ACCOUNTING EQUATION) ====================
