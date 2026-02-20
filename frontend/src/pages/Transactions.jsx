@@ -45,7 +45,9 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Calendar,
-  DollarSign
+  DollarSign,
+  Settings,
+  CreditCard as CreditCardIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -59,8 +61,8 @@ const formatCurrency = (amount) => {
 };
 
 const CATEGORIES = {
-  income: ['Salary', 'Business', 'Investment', 'Freelance', 'Other Income'],
-  expense: ['Food', 'Transport', 'Bills', 'Shopping', 'Entertainment', 'Health', 'Education', 'Subscription', 'Other Expense']
+  income: ['Salary', 'Business', 'Investment', 'Freelance', 'Dividend', 'Interest', 'Other Income'],
+  expense: ['Food', 'Transport', 'Bills', 'Shopping', 'Entertainment', 'Health', 'Education', 'Subscription', 'Debt Payment', 'Other Expense']
 };
 
 const SUB_CATEGORIES = {
@@ -68,7 +70,7 @@ const SUB_CATEGORIES = {
   expense: ['Needs', 'Wants']
 };
 
-const PAYMENT_METHODS = ['Cash', 'Debit Card', 'Credit Card', 'Bank Transfer', 'E-Wallet'];
+const PAYMENT_METHODS = ['Cash', 'Debit Card', 'Credit Card', 'Bank Transfer', 'E-Wallet', 'Pay Later'];
 const STATUSES = ['Completed', 'Pending', 'Cancelled'];
 
 function Transactions() {
@@ -78,7 +80,12 @@ function Transactions() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showAccountManagement, setShowAccountManagement] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
+  
+  // Account management
+  const [newAccountName, setNewAccountName] = useState('');
+  const [newAccountType, setNewAccountType] = useState('Bank');
   
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -134,21 +141,91 @@ function Transactions() {
     try {
       const response = await axios.get(`${API}/accounts`);
       if (response.data.length === 0) {
-        // Create default accounts
         const defaultAccounts = ['BCA', 'Mandiri', 'GoPay', 'Cash', 'Binance'];
         for (const name of defaultAccounts) {
           await axios.post(`${API}/accounts`, { name, type: 'Bank', balance: 0 });
         }
         const newResponse = await axios.get(`${API}/accounts`);
         setAccounts(newResponse.data);
+        if (newResponse.data.length > 0) {
+          setFormData(prev => ({ ...prev, account: newResponse.data[0].name }));
+        }
       } else {
         setAccounts(response.data);
-      }
-      if (response.data.length > 0 && !formData.account) {
-        setFormData(prev => ({ ...prev, account: response.data[0].name }));
+        if (response.data.length > 0 && !formData.account) {
+          setFormData(prev => ({ ...prev, account: response.data[0].name }));
+        }
       }
     } catch (error) {
       console.error('Error fetching accounts:', error);
+    }
+  };
+
+  const handleAddAccount = async () => {
+    if (!newAccountName.trim()) {
+      toast.error('Please enter account name');
+      return;
+    }
+    
+    const exists = accounts.find(acc => acc.name.toLowerCase() === newAccountName.trim().toLowerCase());
+    if (exists) {
+      toast.error('Account already exists');
+      return;
+    }
+
+    try {
+      await axios.post(`${API}/accounts`, {
+        name: newAccountName.trim(),
+        type: newAccountType,
+        balance: 0
+      });
+      toast.success('Account added successfully!');
+      setNewAccountName('');
+      setNewAccountType('Bank');
+      fetchAccounts();
+    } catch (error) {
+      console.error('Error adding account:', error);
+      toast.error('Failed to add account');
+    }
+  };
+
+  const handleDeleteAccount = async (accountId, accountName) => {
+    try {
+      await axios.delete(`${API}/accounts/${accountId}`);
+      toast.success(`Account ${accountName} deleted successfully!`);
+      fetchAccounts();
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error('Failed to delete account');
+    }
+  };
+
+  const createDebtFromCreditTransaction = async (transaction) => {
+    try {
+      const debtsResponse = await axios.get(`${API}/debts`);
+      const existingDebt = debtsResponse.data.find(
+        d => d.creditor === transaction.account && d.is_active
+      );
+
+      if (existingDebt) {
+        await axios.put(`${API}/debts/${existingDebt.id}`, {
+          current_balance: existingDebt.current_balance + transaction.amount
+        });
+      } else {
+        await axios.post(`${API}/debts`, {
+          debt_type: transaction.payment_method === 'Credit Card' ? 'Credit Card' : 'Personal Loan',
+          creditor: transaction.account,
+          principal_amount: transaction.amount,
+          current_balance: transaction.amount,
+          interest_rate: transaction.payment_method === 'Credit Card' ? 2.5 : 1.5,
+          monthly_payment: transaction.amount * 0.1,
+          remaining_installments: 10,
+          due_date: '05',
+          notes: `Auto-created from transaction: ${transaction.description}`
+        });
+      }
+    } catch (error) {
+      console.error('Error creating/updating debt:', error);
     }
   };
 
@@ -159,8 +236,18 @@ function Transactions() {
         amount: parseFloat(formData.amount),
         tags: formData.tags.filter(t => t.trim() !== '')
       };
-      await axios.post(`${API}/transactions`, dataToSend);
-      toast.success('Transaction added successfully!');
+      
+      const response = await axios.post(`${API}/transactions`, dataToSend);
+      
+      if ((formData.payment_method === 'Credit Card' || formData.payment_method === 'Pay Later') && formData.type === 'expense') {
+        await createDebtFromCreditTransaction(response.data);
+        toast.success('Transaction added and debt created successfully!', {
+          description: 'Check the Debts page to manage your credit'
+        });
+      } else {
+        toast.success('Transaction added successfully!');
+      }
+      
       setShowAddDialog(false);
       resetForm();
       fetchTransactions();
@@ -283,7 +370,6 @@ function Transactions() {
     return sortOrder === 'asc' ? <ArrowUp className="w-4 h-4 ml-1" /> : <ArrowDown className="w-4 h-4 ml-1" />;
   };
 
-  // Calculate stats
   const totalIncome = transactions.filter(tx => tx.type === 'income').reduce((sum, tx) => sum + tx.amount, 0);
   const totalExpense = transactions.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + tx.amount, 0);
   const netBalance = totalIncome - totalExpense;
@@ -298,7 +384,6 @@ function Transactions() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
-      {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="border-emerald-100 bg-emerald-50/50">
           <CardHeader>
@@ -328,12 +413,15 @@ function Transactions() {
         </Card>
       </div>
 
-      {/* Filters and Actions */}
       <Card>
         <CardHeader>
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <CardTitle className="text-2xl font-black text-slate-800">Transaction History</CardTitle>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Button onClick={() => setShowAccountManagement(true)} variant="outline" size="sm">
+                <Settings className="w-4 h-4 mr-2" />
+                Manage Accounts
+              </Button>
               <Button onClick={exportToCSV} variant="outline" size="sm">
                 <Download className="w-4 h-4 mr-2" />
                 Export CSV
@@ -346,7 +434,6 @@ function Transactions() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Search and Filters */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -406,7 +493,6 @@ function Transactions() {
             </Select>
           </div>
 
-          {/* Transaction Table */}
           <div className="border rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -452,6 +538,7 @@ function Transactions() {
                   ) : (
                     transactions.map((tx) => {
                       const isIncome = tx.type === 'income';
+                      const isCreditCard = tx.payment_method === 'Credit Card' || tx.payment_method === 'Pay Later';
                       return (
                         <tr key={tx.id} className="hover:bg-slate-50 transition-colors" data-testid="transaction-row">
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -496,7 +583,14 @@ function Transactions() {
                             <span className="text-sm font-semibold text-slate-700">{tx.account}</span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-slate-600">{tx.payment_method || '-'}</span>
+                            <div className="flex items-center gap-2">
+                              {isCreditCard && <CreditCardIcon className="w-4 h-4 text-orange-500" />}
+                              <span className={`text-sm ${
+                                isCreditCard ? 'font-bold text-orange-600' : 'text-slate-600'
+                              }`}>
+                                {tx.payment_method || '-'}
+                              </span>
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <Badge 
@@ -536,14 +630,12 @@ function Transactions() {
             </div>
           </div>
 
-          {/* Transaction Count */}
           <div className="text-sm text-slate-600 font-semibold">
             Showing {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
           </div>
         </CardContent>
       </Card>
 
-      {/* Add Transaction Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -557,6 +649,19 @@ function Transactions() {
             setFormData={setFormData} 
             accounts={accounts}
           />
+          {(formData.payment_method === 'Credit Card' || formData.payment_method === 'Pay Later') && formData.type === 'expense' && (
+            <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl">
+              <div className="flex items-start gap-3">
+                <CreditCardIcon className="w-5 h-5 text-orange-600 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-orange-900">Credit/Pay Later Notice</p>
+                  <p className="text-xs text-orange-700 mt-1">
+                    This transaction will automatically create or update a debt record in your Liabilities.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
             <Button onClick={handleAddTransaction} data-testid="save-transaction-btn">Save Transaction</Button>
@@ -564,7 +669,6 @@ function Transactions() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Transaction Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -585,7 +689,6 @@ function Transactions() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -602,16 +705,89 @@ function Transactions() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={showAccountManagement} onOpenChange={setShowAccountManagement}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black flex items-center gap-2">
+              <Settings className="w-6 h-6" />
+              Account Management
+            </DialogTitle>
+            <DialogDescription>
+              Add or remove accounts from your transaction dropdown
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <h3 className="font-bold text-slate-700">Add New Account</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-2">
+                  <Input
+                    placeholder="Account name (e.g., BCA, OVO)"
+                    value={newAccountName}
+                    onChange={(e) => setNewAccountName(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleAddAccount()}
+                  />
+                </div>
+                <Select value={newAccountType} onValueChange={setNewAccountType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Bank">Bank</SelectItem>
+                    <SelectItem value="E-Wallet">E-Wallet</SelectItem>
+                    <SelectItem value="Cash">Cash</SelectItem>
+                    <SelectItem value="Investment">Investment</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleAddAccount} className="w-full">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Account
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="font-bold text-slate-700">Existing Accounts ({accounts.length})</h3>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {accounts.map((account) => (
+                  <div key={account.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
+                    <div>
+                      <p className="font-bold text-slate-800">{account.name}</p>
+                      <p className="text-xs text-slate-500">{account.type} • Balance: {formatCurrency(account.balance)}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        if (window.confirm(`Delete account "${account.name}"?`)) {
+                          handleDeleteAccount(account.id, account.name);
+                        }
+                      }}
+                      className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setShowAccountManagement(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-// Transaction Form Component
 function TransactionForm({ formData, setFormData, accounts }) {
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
-    // Auto-update sub_category when type changes
     if (field === 'type') {
       if (value === 'income') {
         setFormData(prev => ({ 
