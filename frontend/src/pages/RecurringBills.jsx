@@ -192,13 +192,13 @@ function RecurringBills() {
   const openEditDialog = (item) => {
     setSelectedItem(item);
     setFormData({
-      name: item.name,
-      amount: item.amount.toString(),
-      type: item.type,
-      category: item.category,
-      account: item.account,
-      day_of_month: item.day_of_month,
-      is_active: item.is_active,
+      name: item.name || '',
+      amount: (item.amount || 0).toString(),
+      type: item.type || 'expense',
+      category: item.category || 'Bills',
+      account: item.account || 'Cash',
+      day_of_month: item.day_of_month || 1,
+      is_active: item.is_active !== false,
       notes: item.notes || ''
     });
     setShowEditDialog(true);
