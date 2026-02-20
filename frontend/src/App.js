@@ -190,7 +190,6 @@ function AppContent() {
             <Route path="/budget" element={<BudgetPlanner />} />
             <Route path="/goals" element={<FinancialGoals />} />
             <Route path="/investments" element={<Investments />} />
-            <Route path="/investments/detail" element={<InvestmentDetail />} />
             <Route path="/debts" element={<Debts />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings/accounts" element={<SettingsAccounts />} />
