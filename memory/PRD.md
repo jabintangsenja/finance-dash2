@@ -40,12 +40,15 @@ User requested to transform a simple personal finance dashboard into a comprehen
 - [x] Category Breakdown - Pie charts for income/expense
 - [x] Month navigation
 
-#### Recurring Transactions (NEW)
+#### Tagihan & Recurring (Unified - Updated Feb 2026)
 - [x] Create recurring income/expense
-- [x] Set frequency (Monthly) and day of month
+- [x] Set frequency: **Setiap Bulan** (Monthly) or **Adhoc** (One-time)
+- [x] **Calendar Picker** for due date selection
 - [x] Toggle active/inactive
-- [x] Generate transaction manually
+- [x] Mark as Paid with auto-transaction creation
 - [x] Summary cards (monthly income/expense/net)
+- [x] Backend data normalization for legacy `bills` collection
+- [x] Consistent Add/Edit dialog forms
 
 #### Investment Detail (NEW)
 - [x] Tab-based UI for Saham, Deposito, Emas, Reksadana
@@ -109,6 +112,7 @@ User requested to transform a simple personal finance dashboard into a comprehen
 ## Testing Status
 - All features tested via screenshots and manual testing
 - Backend APIs verified via curl
+- Tagihan & Recurring form refactor tested (Feb 2026)
 
 ## Backlog / Future Tasks
 
