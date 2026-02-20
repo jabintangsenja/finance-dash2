@@ -19,6 +19,7 @@ const formatCurrency = (amount) => {
 };
 
 function Investments() {
+  const navigate = useNavigate();
   const [investments, setInvestments] = useState({
     saham: 0,
     deposito: 0,
