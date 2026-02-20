@@ -293,26 +293,6 @@ class DebtCreate(BaseModel):
     notes: Optional[str] = None
 
 
-# Recurring Bill Models (Enhanced)
-class RecurringBill(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    name: str
-    amount: float
-    due_date: str  # Day of month
-    period: str  # Monthly, Yearly
-    category: str = "Bills"
-    is_active: bool = True
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class RecurringBillCreate(BaseModel):
-    name: str
-    amount: float
-    due_date: str
-    period: str = "Monthly"
-    category: str = "Bills"
-
-
 # Bill Payment History
 class BillPayment(BaseModel):
     model_config = ConfigDict(extra="ignore")
