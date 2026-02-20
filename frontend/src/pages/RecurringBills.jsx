@@ -86,7 +86,8 @@ function RecurringBills() {
     type: 'expense',
     category: 'Bills',
     account: '',
-    day_of_month: 1,
+    due_date: new Date(),
+    frequency: 'monthly', // 'monthly' or 'adhoc'
     is_active: true,
     notes: ''
   });
