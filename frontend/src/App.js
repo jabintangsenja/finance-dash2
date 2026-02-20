@@ -187,6 +187,8 @@ function AppContent() {
             <Route path="/debts" element={<Debts />} />
             <Route path="/bills" element={<Bills />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/settings/accounts" element={<SettingsAccounts />} />
+            <Route path="/settings/categories" element={<SettingsCategories />} />
           </Routes>
         </div>
       </main>
