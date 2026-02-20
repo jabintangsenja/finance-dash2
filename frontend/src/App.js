@@ -5,7 +5,6 @@ import '@/App.css';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Investments from './pages/Investments';
-import InvestmentDetail from './pages/InvestmentDetail';
 import Debts from './pages/Debts';
 import Analytics from './pages/Analytics';
 import BudgetPlanner from './pages/BudgetPlanner';
