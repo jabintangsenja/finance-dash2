@@ -38,6 +38,8 @@ class TransactionCategory(str, Enum):
     BUSINESS = "Business"
     INVESTMENT = "Investment"
     FREELANCE = "Freelance"
+    DIVIDEND = "Dividend"
+    INTEREST = "Interest"
     OTHER_INCOME = "Other Income"
     
     # Expense Categories
@@ -49,6 +51,7 @@ class TransactionCategory(str, Enum):
     HEALTH = "Health"
     EDUCATION = "Education"
     SUBSCRIPTION = "Subscription"
+    DEBT_PAYMENT = "Debt Payment"
     OTHER_EXPENSE = "Other Expense"
 
 class TransactionSubCategory(str, Enum):
@@ -68,6 +71,27 @@ class TransactionStatus(str, Enum):
     COMPLETED = "Completed"
     PENDING = "Pending"
     CANCELLED = "Cancelled"
+
+class DebtType(str, Enum):
+    CREDIT_CARD = "Credit Card"
+    MORTGAGE = "Mortgage"
+    CAR_LOAN = "Car Loan"
+    PERSONAL_LOAN = "Personal Loan"
+    STUDENT_LOAN = "Student Loan"
+    INSTALLMENT = "Installment"
+    OTHER = "Other"
+
+class MutualFundType(str, Enum):
+    EQUITY = "Equity"
+    FIXED_INCOME = "Fixed Income"
+    MIXED = "Mixed"
+    MONEY_MARKET = "Money Market"
+
+class GoldType(str, Enum):
+    ANTAM = "Antam"
+    UBS = "UBS"
+    JEWELRY = "Jewelry"
+    OTHER = "Other"
 
 
 # ==================== MODELS ====================
@@ -134,28 +158,147 @@ class TransactionUpdate(BaseModel):
     date: Optional[datetime] = None
 
 
-# Investment Models
-class Investment(BaseModel):
+# Stock/Saham Models
+class Stock(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    name: str  # Saham, Deposito, Emas, Reksadana
-    amount: float
+    ticker: str
+    name: str
+    securities: str  # Nama Sekuritas
+    lots: float
+    buy_price: float  # Average buy price per share
+    current_price: float
+    buy_date: datetime
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class InvestmentUpdate(BaseModel):
-    saham: float = 0.0
-    deposito: float = 0.0
-    emas: float = 0.0
-    reksadana: float = 0.0
+class StockCreate(BaseModel):
+    ticker: str
+    name: str
+    securities: str
+    lots: float
+    buy_price: float
+    current_price: float
+    buy_date: Optional[datetime] = None
+    notes: Optional[str] = None
 
 
-# Recurring Bill Models
+# Deposit/Deposito Models
+class Deposit(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    bank_name: str
+    amount: float
+    tenor_months: int
+    interest_rate: float  # Percentage
+    start_date: datetime
+    maturity_date: datetime
+    is_auto_renewal: bool = False
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class DepositCreate(BaseModel):
+    bank_name: str
+    amount: float
+    tenor_months: int
+    interest_rate: float
+    start_date: Optional[datetime] = None
+    is_auto_renewal: bool = False
+    notes: Optional[str] = None
+
+
+# Gold/Emas Models
+class Gold(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: GoldType
+    weight_grams: float
+    buy_price_per_gram: float
+    current_price_per_gram: float
+    purchase_location: str
+    buy_date: datetime
+    certificate_number: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class GoldCreate(BaseModel):
+    type: GoldType
+    weight_grams: float
+    buy_price_per_gram: float
+    current_price_per_gram: float
+    purchase_location: str
+    buy_date: Optional[datetime] = None
+    certificate_number: Optional[str] = None
+    notes: Optional[str] = None
+
+
+# Mutual Fund/Reksadana Models
+class MutualFund(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    product_name: str
+    fund_manager: str
+    type: MutualFundType
+    units: float
+    buy_nav: float  # NAB saat beli
+    current_nav: float  # NAB saat ini
+    buy_date: datetime
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class MutualFundCreate(BaseModel):
+    product_name: str
+    fund_manager: str
+    type: MutualFundType
+    units: float
+    buy_nav: float
+    current_nav: float
+    buy_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+# Debt/Utang Models
+class Debt(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    debt_type: DebtType
+    creditor: str  # Bank/Kreditor
+    principal_amount: float  # Jumlah pinjaman awal
+    current_balance: float  # Sisa utang
+    interest_rate: float  # Percentage
+    monthly_payment: float
+    remaining_installments: int
+    due_date: str  # Day of month
+    start_date: datetime
+    notes: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class DebtCreate(BaseModel):
+    debt_type: DebtType
+    creditor: str
+    principal_amount: float
+    current_balance: float
+    interest_rate: float
+    monthly_payment: float
+    remaining_installments: int
+    due_date: str
+    start_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+# Recurring Bill Models (Enhanced)
 class RecurringBill(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     amount: float
-    due_date: str  # Day of month (e.g., "05", "10")
+    due_date: str  # Day of month
     period: str  # Monthly, Yearly
     category: str = "Bills"
     is_active: bool = True
@@ -169,16 +312,59 @@ class RecurringBillCreate(BaseModel):
     category: str = "Bills"
 
 
-# Dashboard Stats Model
-class DashboardStats(BaseModel):
-    cash_balance: float
-    total_investments: float
-    net_worth: float
-    total_income: float
-    total_expense: float
-    total_transactions: int
-    accounts: List[Account]
-    recent_transactions: List[Transaction]
+# Bill Payment History
+class BillPayment(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    bill_id: str
+    bill_name: str
+    amount: float
+    due_date: str
+    payment_date: datetime
+    is_paid: bool = True
+    month_year: str  # Format: "2025-01"
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class BillPaymentCreate(BaseModel):
+    bill_id: str
+    bill_name: str
+    amount: float
+    due_date: str
+    payment_date: Optional[datetime] = None
+    month_year: str
+    notes: Optional[str] = None
+
+
+# Financial Goal Models
+class FinancialGoal(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    target_amount: float
+    current_amount: float = 0.0
+    target_date: datetime
+    category: str  # Emergency Fund, House, Car, Vacation, Retirement
+    is_achieved: bool = False
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class FinancialGoalCreate(BaseModel):
+    name: str
+    target_amount: float
+    current_amount: float = 0.0
+    target_date: datetime
+    category: str
+    notes: Optional[str] = None
+
+
+# Investment Update Model (Legacy for backward compatibility)
+class InvestmentUpdate(BaseModel):
+    saham: float = 0.0
+    deposito: float = 0.0
+    emas: float = 0.0
+    reksadana: float = 0.0
 
 
 # ==================== HELPER FUNCTIONS ====================
@@ -195,7 +381,7 @@ def serialize_datetime(obj):
 def deserialize_datetime(obj):
     """Convert ISO string to datetime objects"""
     if isinstance(obj, dict):
-        for key in ['date', 'created_at', 'updated_at', 'timestamp']:
+        for key in ['date', 'created_at', 'updated_at', 'timestamp', 'buy_date', 'start_date', 'maturity_date', 'target_date', 'payment_date']:
             if key in obj and isinstance(obj[key], str):
                 try:
                     obj[key] = datetime.fromisoformat(obj[key])
@@ -209,7 +395,7 @@ def deserialize_datetime(obj):
 
 @api_router.get("/")
 async def root():
-    return {"message": "FinanceOS API V8 - Personal Finance Management System"}
+    return {"message": "FinanceOS API V8 - Complete Personal Finance Management System"}
 
 
 # ==================== ACCOUNT ROUTES ====================
@@ -253,30 +439,24 @@ async def get_transactions(
     """Get all transactions with filtering and sorting"""
     query = {}
     
-    # Search in description or notes
     if search:
         query["$or"] = [
             {"description": {"$regex": search, "$options": "i"}},
             {"notes": {"$regex": search, "$options": "i"}}
         ]
     
-    # Filter by type
     if type:
         query["type"] = type
     
-    # Filter by category
     if category:
         query["category"] = category
     
-    # Filter by account
     if account:
         query["account"] = account
     
-    # Filter by status
     if status:
         query["status"] = status
     
-    # Filter by date range
     if date_from or date_to:
         query["date"] = {}
         if date_from:
@@ -284,7 +464,6 @@ async def get_transactions(
         if date_to:
             query["date"]["$lte"] = date_to
     
-    # Filter by amount range
     if min_amount is not None or max_amount is not None:
         query["amount"] = {}
         if min_amount is not None:
@@ -292,7 +471,6 @@ async def get_transactions(
         if max_amount is not None:
             query["amount"]["$lte"] = max_amount
     
-    # Sorting
     sort_direction = -1 if sort_order == "desc" else 1
     
     transactions = await db.transactions.find(query, {"_id": 0}).sort(sort_by, sort_direction).limit(limit).to_list(limit)
@@ -301,7 +479,6 @@ async def get_transactions(
 
 @api_router.post("/transactions", response_model=Transaction)
 async def create_transaction(transaction: TransactionCreate):
-    # If date not provided, use current datetime
     tx_dict = transaction.model_dump()
     if tx_dict.get('date') is None:
         tx_dict['date'] = datetime.now(timezone.utc)
@@ -324,7 +501,6 @@ async def create_transaction(transaction: TransactionCreate):
 
 @api_router.put("/transactions/{transaction_id}", response_model=Transaction)
 async def update_transaction(transaction_id: str, transaction: TransactionUpdate):
-    # Get existing transaction
     existing = await db.transactions.find_one({"id": transaction_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Transaction not found")
@@ -344,11 +520,9 @@ async def update_transaction(transaction_id: str, transaction: TransactionUpdate
     update_data = {k: v for k, v in transaction.model_dump().items() if v is not None}
     update_data['updated_at'] = datetime.now(timezone.utc)
     
-    # Merge with existing
     for key, value in update_data.items():
         existing[key] = value
     
-    # Save updated transaction
     doc = serialize_datetime(existing)
     await db.transactions.update_one({"id": transaction_id}, {"$set": doc})
     
@@ -365,7 +539,6 @@ async def update_transaction(transaction_id: str, transaction: TransactionUpdate
 
 @api_router.delete("/transactions/{transaction_id}")
 async def delete_transaction(transaction_id: str):
-    # Get transaction
     tx = await db.transactions.find_one({"id": transaction_id}, {"_id": 0})
     if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
@@ -379,7 +552,6 @@ async def delete_transaction(transaction_id: str):
         {"$inc": {"balance": -amount}}
     )
     
-    # Delete transaction
     await db.transactions.delete_one({"id": transaction_id})
     return {"message": "Transaction deleted successfully"}
 
@@ -391,7 +563,6 @@ async def get_transaction_stats():
     total_income = sum(tx['amount'] for tx in transactions if tx['type'] == 'income')
     total_expense = sum(tx['amount'] for tx in transactions if tx['type'] == 'expense')
     
-    # Category breakdown
     category_breakdown = {}
     for tx in transactions:
         cat = tx.get('category', 'Other')
@@ -413,40 +584,192 @@ async def get_transaction_stats():
     }
 
 
-# ==================== INVESTMENT ROUTES ====================
-@api_router.get("/investments")
-async def get_investments():
-    investments = await db.investments.find({}, {"_id": 0}).to_list(1000)
-    if not investments:
-        # Return default structure
-        return {
-            "saham": 0,
-            "deposito": 0,
-            "emas": 0,
-            "reksadana": 0
-        }
-    
-    # Convert list to dict
-    result = {}
-    for inv in investments:
-        inv = deserialize_datetime(inv)
-        result[inv['name']] = inv['amount']
-    
-    return result
+# ==================== STOCK ROUTES ====================
+@api_router.get("/stocks", response_model=List[Stock])
+async def get_stocks():
+    stocks = await db.stocks.find({}, {"_id": 0}).to_list(1000)
+    return [deserialize_datetime(s) for s in stocks]
 
-@api_router.post("/investments")
-async def update_investments(investments: InvestmentUpdate):
-    # Clear existing
-    await db.investments.delete_many({})
+@api_router.post("/stocks", response_model=Stock)
+async def create_stock(stock: StockCreate):
+    stock_dict = stock.model_dump()
+    if stock_dict.get('buy_date') is None:
+        stock_dict['buy_date'] = datetime.now(timezone.utc)
+    stock_obj = Stock(**stock_dict)
+    doc = serialize_datetime(stock_obj.model_dump())
+    await db.stocks.insert_one(doc)
+    return stock_obj
+
+@api_router.put("/stocks/{stock_id}", response_model=Stock)
+async def update_stock(stock_id: str, stock_data: dict):
+    existing = await db.stocks.find_one({"id": stock_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Stock not found")
     
-    # Insert new
-    inv_dict = investments.model_dump()
-    for name, amount in inv_dict.items():
-        inv_obj = Investment(name=name, amount=amount)
-        doc = serialize_datetime(inv_obj.model_dump())
-        await db.investments.insert_one(doc)
+    stock_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    await db.stocks.update_one({"id": stock_id}, {"$set": stock_data})
     
-    return {"message": "Investments updated successfully", "data": inv_dict}
+    updated = await db.stocks.find_one({"id": stock_id}, {"_id": 0})
+    return deserialize_datetime(updated)
+
+@api_router.delete("/stocks/{stock_id}")
+async def delete_stock(stock_id: str):
+    result = await db.stocks.delete_one({"id": stock_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Stock not found")
+    return {"message": "Stock deleted successfully"}
+
+
+# ==================== DEPOSIT ROUTES ====================
+@api_router.get("/deposits", response_model=List[Deposit])
+async def get_deposits():
+    deposits = await db.deposits.find({}, {"_id": 0}).to_list(1000)
+    return [deserialize_datetime(d) for d in deposits]
+
+@api_router.post("/deposits", response_model=Deposit)
+async def create_deposit(deposit: DepositCreate):
+    from dateutil.relativedelta import relativedelta
+    
+    deposit_dict = deposit.model_dump()
+    if deposit_dict.get('start_date') is None:
+        deposit_dict['start_date'] = datetime.now(timezone.utc)
+    
+    # Calculate maturity date
+    start = deposit_dict['start_date']
+    maturity = start + relativedelta(months=deposit_dict['tenor_months'])
+    deposit_dict['maturity_date'] = maturity
+    
+    deposit_obj = Deposit(**deposit_dict)
+    doc = serialize_datetime(deposit_obj.model_dump())
+    await db.deposits.insert_one(doc)
+    return deposit_obj
+
+@api_router.put("/deposits/{deposit_id}", response_model=Deposit)
+async def update_deposit(deposit_id: str, deposit_data: dict):
+    existing = await db.deposits.find_one({"id": deposit_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Deposit not found")
+    
+    deposit_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    await db.deposits.update_one({"id": deposit_id}, {"$set": deposit_data})
+    
+    updated = await db.deposits.find_one({"id": deposit_id}, {"_id": 0})
+    return deserialize_datetime(updated)
+
+@api_router.delete("/deposits/{deposit_id}")
+async def delete_deposit(deposit_id: str):
+    result = await db.deposits.delete_one({"id": deposit_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Deposit not found")
+    return {"message": "Deposit deleted successfully"}
+
+
+# ==================== GOLD ROUTES ====================
+@api_router.get("/gold", response_model=List[Gold])
+async def get_gold():
+    gold_items = await db.gold.find({}, {"_id": 0}).to_list(1000)
+    return [deserialize_datetime(g) for g in gold_items]
+
+@api_router.post("/gold", response_model=Gold)
+async def create_gold(gold: GoldCreate):
+    gold_dict = gold.model_dump()
+    if gold_dict.get('buy_date') is None:
+        gold_dict['buy_date'] = datetime.now(timezone.utc)
+    gold_obj = Gold(**gold_dict)
+    doc = serialize_datetime(gold_obj.model_dump())
+    await db.gold.insert_one(doc)
+    return gold_obj
+
+@api_router.put("/gold/{gold_id}", response_model=Gold)
+async def update_gold(gold_id: str, gold_data: dict):
+    existing = await db.gold.find_one({"id": gold_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Gold not found")
+    
+    gold_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    await db.gold.update_one({"id": gold_id}, {"$set": gold_data})
+    
+    updated = await db.gold.find_one({"id": gold_id}, {"_id": 0})
+    return deserialize_datetime(updated)
+
+@api_router.delete("/gold/{gold_id}")
+async def delete_gold(gold_id: str):
+    result = await db.gold.delete_one({"id": gold_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Gold not found")
+    return {"message": "Gold deleted successfully"}
+
+
+# ==================== MUTUAL FUND ROUTES ====================
+@api_router.get("/mutual-funds", response_model=List[MutualFund])
+async def get_mutual_funds():
+    funds = await db.mutual_funds.find({}, {"_id": 0}).to_list(1000)
+    return [deserialize_datetime(f) for f in funds]
+
+@api_router.post("/mutual-funds", response_model=MutualFund)
+async def create_mutual_fund(fund: MutualFundCreate):
+    fund_dict = fund.model_dump()
+    if fund_dict.get('buy_date') is None:
+        fund_dict['buy_date'] = datetime.now(timezone.utc)
+    fund_obj = MutualFund(**fund_dict)
+    doc = serialize_datetime(fund_obj.model_dump())
+    await db.mutual_funds.insert_one(doc)
+    return fund_obj
+
+@api_router.put("/mutual-funds/{fund_id}", response_model=MutualFund)
+async def update_mutual_fund(fund_id: str, fund_data: dict):
+    existing = await db.mutual_funds.find_one({"id": fund_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Mutual fund not found")
+    
+    fund_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    await db.mutual_funds.update_one({"id": fund_id}, {"$set": fund_data})
+    
+    updated = await db.mutual_funds.find_one({"id": fund_id}, {"_id": 0})
+    return deserialize_datetime(updated)
+
+@api_router.delete("/mutual-funds/{fund_id}")
+async def delete_mutual_fund(fund_id: str):
+    result = await db.mutual_funds.delete_one({"id": fund_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Mutual fund not found")
+    return {"message": "Mutual fund deleted successfully"}
+
+
+# ==================== DEBT ROUTES ====================
+@api_router.get("/debts", response_model=List[Debt])
+async def get_debts():
+    debts = await db.debts.find({}, {"_id": 0}).to_list(1000)
+    return [deserialize_datetime(d) for d in debts]
+
+@api_router.post("/debts", response_model=Debt)
+async def create_debt(debt: DebtCreate):
+    debt_dict = debt.model_dump()
+    if debt_dict.get('start_date') is None:
+        debt_dict['start_date'] = datetime.now(timezone.utc)
+    debt_obj = Debt(**debt_dict)
+    doc = serialize_datetime(debt_obj.model_dump())
+    await db.debts.insert_one(doc)
+    return debt_obj
+
+@api_router.put("/debts/{debt_id}", response_model=Debt)
+async def update_debt(debt_id: str, debt_data: dict):
+    existing = await db.debts.find_one({"id": debt_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Debt not found")
+    
+    debt_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    await db.debts.update_one({"id": debt_id}, {"$set": debt_data})
+    
+    updated = await db.debts.find_one({"id": debt_id}, {"_id": 0})
+    return deserialize_datetime(updated)
+
+@api_router.delete("/debts/{debt_id}")
+async def delete_debt(debt_id: str):
+    result = await db.debts.delete_one({"id": debt_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Debt not found")
+    return {"message": "Debt deleted successfully"}
 
 
 # ==================== RECURRING BILLS ROUTES ====================
@@ -471,47 +794,197 @@ async def delete_bill(bill_id: str):
     return {"message": "Bill deleted successfully"}
 
 
-# ==================== DASHBOARD ROUTES ====================
+# ==================== BILL PAYMENT ROUTES ====================
+@api_router.get("/bill-payments")
+async def get_bill_payments(bill_id: Optional[str] = None, month_year: Optional[str] = None):
+    query = {}
+    if bill_id:
+        query["bill_id"] = bill_id
+    if month_year:
+        query["month_year"] = month_year
+    
+    payments = await db.bill_payments.find(query, {"_id": 0}).to_list(1000)
+    return [deserialize_datetime(p) for p in payments]
+
+@api_router.post("/bill-payments", response_model=BillPayment)
+async def mark_bill_paid(payment: BillPaymentCreate):
+    payment_dict = payment.model_dump()
+    if payment_dict.get('payment_date') is None:
+        payment_dict['payment_date'] = datetime.now(timezone.utc)
+    
+    payment_obj = BillPayment(**payment_dict)
+    doc = serialize_datetime(payment_obj.model_dump())
+    await db.bill_payments.insert_one(doc)
+    
+    # Create transaction for this bill payment
+    tx = Transaction(
+        description=f"Bill Payment: {payment.bill_name}",
+        amount=payment.amount,
+        type=TransactionType.EXPENSE,
+        category=TransactionCategory.BILLS,
+        account="Cash",  # Default, user can change
+        payment_method=PaymentMethod.TRANSFER,
+        status=TransactionStatus.COMPLETED,
+        notes=f"Auto-created from bill payment: {payment.month_year}",
+        date=payment_obj.payment_date
+    )
+    tx_doc = serialize_datetime(tx.model_dump())
+    await db.transactions.insert_one(tx_doc)
+    
+    return payment_obj
+
+
+# ==================== FINANCIAL GOALS ROUTES ====================
+@api_router.get("/goals", response_model=List[FinancialGoal])
+async def get_goals():
+    goals = await db.financial_goals.find({}, {"_id": 0}).to_list(1000)
+    return [deserialize_datetime(g) for g in goals]
+
+@api_router.post("/goals", response_model=FinancialGoal)
+async def create_goal(goal: FinancialGoalCreate):
+    goal_obj = FinancialGoal(**goal.model_dump())
+    doc = serialize_datetime(goal_obj.model_dump())
+    await db.financial_goals.insert_one(doc)
+    return goal_obj
+
+@api_router.put("/goals/{goal_id}", response_model=FinancialGoal)
+async def update_goal(goal_id: str, goal_data: dict):
+    existing = await db.financial_goals.find_one({"id": goal_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    
+    goal_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    # Check if goal is achieved
+    if 'current_amount' in goal_data and 'target_amount' in existing:
+        if goal_data['current_amount'] >= existing['target_amount']:
+            goal_data['is_achieved'] = True
+    
+    await db.financial_goals.update_one({"id": goal_id}, {"$set": goal_data})
+    
+    updated = await db.financial_goals.find_one({"id": goal_id}, {"_id": 0})
+    return deserialize_datetime(updated)
+
+@api_router.delete("/goals/{goal_id}")
+async def delete_goal(goal_id: str):
+    result = await db.financial_goals.delete_one({"id": goal_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    return {"message": "Goal deleted successfully"}
+
+
+# ==================== LEGACY INVESTMENT ROUTES (for backward compatibility) ====================
+@api_router.get("/investments")
+async def get_investments_legacy():
+    # Calculate totals from detailed investments
+    stocks = await db.stocks.find({}, {"_id": 0}).to_list(1000)
+    deposits = await db.deposits.find({}, {"_id": 0}).to_list(1000)
+    gold_items = await db.gold.find({}, {"_id": 0}).to_list(1000)
+    mutual_funds = await db.mutual_funds.find({}, {"_id": 0}).to_list(1000)
+    
+    total_saham = sum(s['lots'] * s['current_price'] * 100 for s in stocks)
+    total_deposito = sum(d['amount'] for d in deposits)
+    total_emas = sum(g['weight_grams'] * g['current_price_per_gram'] for g in gold_items)
+    total_reksadana = sum(mf['units'] * mf['current_nav'] for mf in mutual_funds)
+    
+    return {
+        "saham": total_saham,
+        "deposito": total_deposito,
+        "emas": total_emas,
+        "reksadana": total_reksadana
+    }
+
+@api_router.post("/investments")
+async def update_investments_legacy(investments: InvestmentUpdate):
+    return {"message": "Please use detailed investment endpoints", "data": investments.model_dump()}
+
+
+# ==================== DASHBOARD ROUTES (ACCOUNTING EQUATION) ====================
 @api_router.get("/dashboard")
 async def get_dashboard_data():
-    """Get comprehensive dashboard data"""
-    # Get accounts
+    """Get comprehensive dashboard data with accounting equation"""
+    
+    # ASSETS - Liquid Assets (Cash & Bank Accounts)
     accounts = await db.accounts.find({}, {"_id": 0}).to_list(1000)
     accounts = [deserialize_datetime(acc) for acc in accounts]
+    liquid_assets = sum(acc['balance'] for acc in accounts)
     
-    # Calculate cash balance (sum of all accounts)
-    cash_balance = sum(acc['balance'] for acc in accounts)
+    # ASSETS - Investments (breakdown)
+    stocks = await db.stocks.find({}, {"_id": 0}).to_list(1000)
+    deposits = await db.deposits.find({}, {"_id": 0}).to_list(1000)
+    gold_items = await db.gold.find({}, {"_id": 0}).to_list(1000)
+    mutual_funds = await db.mutual_funds.find({}, {"_id": 0}).to_list(1000)
     
-    # Get investments
-    investments = await db.investments.find({}, {"_id": 0}).to_list(1000)
-    total_investments = sum(inv['amount'] for inv in investments)
+    total_stocks = sum(s['lots'] * s['current_price'] * 100 for s in stocks)
+    total_deposits = sum(d['amount'] for d in deposits)
+    total_gold = sum(g['weight_grams'] * g['current_price_per_gram'] for g in gold_items)
+    total_mutual_funds = sum(mf['units'] * mf['current_nav'] for mf in mutual_funds)
     
-    # Get transactions stats
+    total_investments = total_stocks + total_deposits + total_gold + total_mutual_funds
+    
+    # TOTAL ASSETS
+    total_assets = liquid_assets + total_investments
+    
+    # LIABILITIES - Debts
+    debts = await db.debts.find({"is_active": True}, {"_id": 0}).to_list(1000)
+    total_liabilities = sum(d['current_balance'] for d in debts)
+    
+    # EQUITY (NET WORTH) = ASSETS - LIABILITIES
+    net_worth = total_assets - total_liabilities
+    
+    # Transactions stats
     transactions = await db.transactions.find({}, {"_id": 0}).to_list(10000)
     total_income = sum(tx['amount'] for tx in transactions if tx['type'] == 'income')
     total_expense = sum(tx['amount'] for tx in transactions if tx['type'] == 'expense')
     
-    # Get recent transactions (last 10)
+    # Recent transactions
     recent_transactions = await db.transactions.find({}, {"_id": 0}).sort("date", -1).limit(10).to_list(10)
     recent_transactions = [deserialize_datetime(tx) for tx in recent_transactions]
     
-    # Calculate net worth
-    net_worth = cash_balance + total_investments
-    
-    # Get recurring bills
+    # Recurring bills
     bills = await db.recurring_bills.find({}, {"_id": 0}).to_list(1000)
     
+    # Financial goals
+    goals = await db.financial_goals.find({}, {"_id": 0}).to_list(1000)
+    goals = [deserialize_datetime(g) for g in goals]
+    
     return {
-        "cash_balance": cash_balance,
+        # Accounting Equation
+        "total_assets": total_assets,
+        "total_liabilities": total_liabilities,
+        "net_worth": net_worth,  # This is EQUITY
+        
+        # Assets Breakdown
+        "liquid_assets": liquid_assets,
         "total_investments": total_investments,
-        "net_worth": net_worth,
+        "investments_breakdown": {
+            "stocks": total_stocks,
+            "deposits": total_deposits,
+            "gold": total_gold,
+            "mutual_funds": total_mutual_funds
+        },
+        
+        # Legacy fields (for backward compatibility)
+        "cash_balance": liquid_assets,
         "total_income": total_income,
         "total_expense": total_expense,
         "total_transactions": len(transactions),
+        
+        # Details
         "accounts": accounts,
         "recent_transactions": recent_transactions,
         "recurring_bills": bills,
-        "investments": {inv['name']: inv['amount'] for inv in investments}
+        "active_debts": len(debts),
+        "total_debt_amount": total_liabilities,
+        "financial_goals": goals,
+        
+        # Investment details count
+        "investment_items_count": {
+            "stocks": len(stocks),
+            "deposits": len(deposits),
+            "gold": len(gold_items),
+            "mutual_funds": len(mutual_funds)
+        }
     }
 
 
@@ -522,7 +995,6 @@ async def get_monthly_analytics():
     transactions = await db.transactions.find({}, {"_id": 0}).to_list(10000)
     transactions = [deserialize_datetime(tx) for tx in transactions]
     
-    # Group by month
     monthly_data = {}
     for tx in transactions:
         month_key = tx['date'].strftime('%Y-%m')
@@ -549,6 +1021,53 @@ async def get_category_analytics():
         category_data[cat] += tx['amount']
     
     return category_data
+
+@api_router.get("/analytics/balance-sheet")
+async def get_balance_sheet():
+    """Get complete balance sheet"""
+    dashboard = await get_dashboard_data()
+    
+    return {
+        "assets": {
+            "liquid_assets": dashboard['liquid_assets'],
+            "investments": {
+                "stocks": dashboard['investments_breakdown']['stocks'],
+                "deposits": dashboard['investments_breakdown']['deposits'],
+                "gold": dashboard['investments_breakdown']['gold'],
+                "mutual_funds": dashboard['investments_breakdown']['mutual_funds'],
+                "total": dashboard['total_investments']
+            },
+            "total": dashboard['total_assets']
+        },
+        "liabilities": {
+            "total": dashboard['total_liabilities']
+        },
+        "equity": {
+            "net_worth": dashboard['net_worth']
+        }
+    }
+
+@api_router.get("/analytics/ratios")
+async def get_financial_ratios():
+    """Get financial health ratios"""
+    dashboard = await get_dashboard_data()
+    
+    # Debt-to-Asset Ratio
+    debt_to_asset = (dashboard['total_liabilities'] / dashboard['total_assets'] * 100) if dashboard['total_assets'] > 0 else 0
+    
+    # Liquid Assets Ratio (Emergency Fund)
+    monthly_expense = dashboard['total_expense'] / 12 if dashboard['total_expense'] > 0 else 0
+    emergency_fund_months = dashboard['liquid_assets'] / monthly_expense if monthly_expense > 0 else 0
+    
+    # Investment Ratio
+    investment_ratio = (dashboard['total_investments'] / dashboard['total_assets'] * 100) if dashboard['total_assets'] > 0 else 0
+    
+    return {
+        "debt_to_asset_ratio": round(debt_to_asset, 2),
+        "emergency_fund_months": round(emergency_fund_months, 2),
+        "investment_ratio": round(investment_ratio, 2),
+        "liquid_asset_ratio": round((dashboard['liquid_assets'] / dashboard['total_assets'] * 100), 2) if dashboard['total_assets'] > 0 else 0
+    }
 
 
 # Include the router in the main app
