@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API } from '../App';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { TrendingUp, LineChart as LineChartIcon, Landmark, Layers, PieChart as PieChartIcon } from 'lucide-react';
+import { TrendingUp, LineChart as LineChartIcon, Landmark, Layers, PieChart as PieChartIcon, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
 const formatCurrency = (amount) => {
