@@ -336,7 +336,7 @@ function RecurringBills() {
                   value="expense"
                   className="rounded-none border-b-2 border-transparent data-[state=active]:border-rose-500 data-[state=active]:bg-transparent px-0 pb-3"
                 >
-                  Pengeluaran ({items.filter(i => i.type === 'expense').length})
+                  Pengeluaran ({items.filter(i => !i.type || i.type === 'expense').length})
                 </TabsTrigger>
                 <TabsTrigger 
                   value="income"
