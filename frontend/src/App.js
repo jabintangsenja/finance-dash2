@@ -12,7 +12,7 @@ import RecurringBills from './pages/RecurringBills';
 import SettingsAccounts from './pages/settings/SettingsAccounts';
 import SettingsCategories from './pages/settings/SettingsCategories';
 import Preferences from './pages/settings/Preferences';
-import { LayoutDashboard, ArrowUpDown, TrendingUp, BarChart3, CreditCard, Target, PieChart, Menu, Settings, Repeat } from 'lucide-react';
+import { LayoutDashboard, ArrowUpDown, TrendingUp, BarChart3, CreditCard, Target, PieChart, Menu, X, Settings, Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toaster } from 'sonner';
 
